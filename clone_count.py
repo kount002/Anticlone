@@ -101,11 +101,11 @@ def mast_mk(pathin): #makes a dict that combines all sample dictionaries
     mastdict=collector(pathin, r=args.bin)
     #saving file to disk
     #? do you need dic.txt if a sql db is created?
-    pathout=inpp+'/'+sample+'dic.txt' #location for the dictionary out file
-    with open(pathout, 'w') as outfl:
-     for k,l in mastdict.items():
-         print(k,l, file=outfl)
-     '''save file to the direcotry'''
+    #pathout=inpp+'/'+sample+'dic.txt' #location for the dictionary out file
+    #with open(pathout, 'w') as outfl:
+    #for k,l in mastdict.items():
+    #    print(k,l, file=outfl)
+    # '''save file to the direcotry'''
     mast[sample]=mastdict
     return(mast)
 
@@ -165,9 +165,6 @@ args = parser.parse_args()
 
 
 inp1=args.input
-
-inp1='clone_count/*hta.sam' #remove when in Linux
-
 sourcefl=inp1.split('/')
 inpp=args.name_prefix
 mast={}
