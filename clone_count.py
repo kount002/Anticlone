@@ -9,6 +9,10 @@ USAGE:
 clone-count.py -i input_bam_file [-n output_file_name_prefix] [-b mask_for_batch_processing]
 Example python3.3 clone-count.py -i Processed_data/*/tophat/accepted_reads.bam
 check is done for the length of path(4), processes as a batch
+Dictionary structure:
+mast:
+'Sample 1': ('chr', pos1, pos2):[count, {'Annotation'}]
+'Sample 2': ('chr', pos1, pos2):[count, {'Annotation'}]
 
 """
 
@@ -110,6 +114,7 @@ def mast_mk(pathin): #makes a dict that combines all sample dictionaries
     return(mast)
 
 def save_db(mast): #(master dict with all clones, ) converts dict with clones into sql db 
+    #under development implement clone matching between samples for the same clone    
     ''' one table: (Position-chromosome, position-start, position-end,
     Annotation, Sample1(count), Sample2(count))
     '''
@@ -139,7 +144,9 @@ def save_db(mast): #(master dict with all clones, ) converts dict with clones in
         for clone in mast[sample]:
             psch, psst, psend=clone
             annt=', '.join(mast[sample][clone][1])
-            count=len(mast[sample][clone][0])
+            count=mast[sample][clone][0]
+            
+                        
             #print('dgs values', psst, psend, annt, count)
             c.execute('INSERT INTO {0} ("pos_ch", "pos_st", "pos_end", \
             "annotation", {1}) VALUES (?,?,?,?,?)'.format(tbname, sample), \
@@ -147,11 +154,35 @@ def save_db(mast): #(master dict with all clones, ) converts dict with clones in
     conn.commit()
     conn.close()
             
-def save_pickle(mast):
+def save_pickle(mast): #saves dictionary as a pickle file for use in other scripts
     with open(inpp+'.pkl', 'wb') as handle:
         pickle.dump(mast, handle)
     return()            
-                        
+
+def dic_reduce(mast): #replaces set of read names with count
+    for sample in mast:
+        for clone in mast[sample]:
+            count=len(mast[sample][clone][0])
+            mast[sample][clone][0]=count
+    return(mast)
+    
+    
+#def dic_invert(mast): # under development (changes dict structure so the clone is top key)
+#    cdic=defaultdict([list])
+#    
+#    for sample in mast:
+#        for clone in mast[sample]:
+#            if clone in cdic:
+#                pass # present, just add count
+#            elif clone: #stopped here
+#                pass
+#            ch, pos1, pos2 = clone
+#            
+#            if clone:
+#                cdic[clone]
+#    
+#    return(cdic)
+    
             
 ################# function section is above ############
        
@@ -165,9 +196,13 @@ args = parser.parse_args()
 
 
 inp1=args.input
+
+#clone_count/*.sam' #windos hack for the argparse/special charater
+
 sourcefl=inp1.split('/')
 inpp=args.name_prefix
 mast={}
+
 
 if not args.batch: # decide if one file to test or maltiple files to process
     print('not batch processing is in development')
@@ -189,7 +224,7 @@ else:
             print('Error: ', e)
         #else:
             print('What are the samples names? Diagnostic msg')
-    elif sourcefl[-1].endswith('hta.sam'): # makes sure that we have sam file
+    elif sourcefl[-1].endswith('.sam'): # makes sure that we have sam file
         if len(sourcefl)==2:
             read_fl=glob.glob(inp1)
             for f in read_fl: #starts proceessing of individual files
@@ -202,9 +237,9 @@ else:
                 pathin=os.path.join(inpp, sample+'hta.sam')
                 mast=mast_mk(pathin)
                                 
-        pass #convert master dict to sqlite db
-        save_db(mast)
-        save_pickle(mast)
+        dic_reduce(mast)
+        save_db(mast) #convert master dict to sqlite db
+        save_pickle(mast) #convert master dict to pickle dump
     
        
         
@@ -214,7 +249,6 @@ print('im done')
 
 #if __name__=='__main__':
 #    main()
-
 
 
 
