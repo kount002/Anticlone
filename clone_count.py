@@ -14,6 +14,11 @@ mast:
 'Sample 1': ('chr', pos1, pos2):[count, {'Annotation'}]
 'Sample 2': ('chr', pos1, pos2):[count, {'Annotation'}]
 
+The script has issue with path expantion when the path contains * symbol, windows and python3.3 clone_count start results in a error message related to unknown arguments. 
+either shell or argparse to blame.
+However the sripts runs fine if started from IPython3 environment via 'run clone_count' command
+
+
 """
 
 
@@ -155,7 +160,8 @@ def save_db(mast): #(master dict with all clones, ) converts dict with clones in
     conn.close()
             
 def save_pickle(mast): #saves dictionary as a pickle file for use in other scripts
-    with open(inpp+'.pkl', 'wb') as handle:
+    pathf=sys.path.join(innp, innp+'.pkl')
+    with open(pathf, 'wb') as handle:
         pickle.dump(mast, handle)
     return()            
 

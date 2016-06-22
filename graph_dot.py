@@ -40,7 +40,8 @@ def drw_dots(samplist, ll):
         
         
     #plt.plot(ll[0,:], ll[1,:], 'bo')
-    
+    #figname=samplist[1]+'_fig.pdf'
+    #figname=sys.join(inpp, figname)
     fig.savefig('filename.pdf')
     
 
@@ -63,7 +64,7 @@ for i in sys.argv[2:]: #check that specified samples are in pickle
         print (masdi.keys())
         sys.exit(2)
 
-
+inpp=sys.path.dirname(sys.argv[1])
 mlist=[] # create master list of all clones
 samplist=[]
 for i in sys.argv[2:]:
