@@ -160,7 +160,7 @@ def save_db(mast): #(master dict with all clones, ) converts dict with clones in
     conn.close()
             
 def save_pickle(mast): #saves dictionary as a pickle file for use in other scripts
-    pathf=sys.path.join(innp, innp+'.pkl')
+    pathf=os.path.join(innp, innp+'.pkl')
     with open(pathf, 'wb') as handle:
         pickle.dump(mast, handle)
     return()            
