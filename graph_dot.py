@@ -77,17 +77,20 @@ for i in sys.argv[2:]: #check that specified samples are in pickle
         sys.exit(2)
 
 inpp=os.path.dirname(sys.argv[1])
-mlist=[] # create master list of all clones
+mlist=set() # create master list of all clones
 samplist=[]
 for i in sys.argv[2:]:
-    samplist.append(i)
-    mlist=mlist+[x for x in masdi[i]]   
+    samplist.append(i) #this to be used for graphs, not here
+    #need a set here then convert to list
+        
+    mlist.update([x for x in masdi[i]])
+    #mlist=mlist+[x for x in masdi[i]]   
 print('Total clones to graph:', len(mlist))
 
 
 ll=[]
 for i in sys.argv[2:]: # make array of counts out of dictionary 
-    lis=[masdi[i][x][0] if x in masdi[i] else 0 for x in mlist]
+    lis=[masdi[i][x][0] if x in masdi[i] else 0 for x in mlist] #
     ll.append(lis)
     print(i, 'contains', len(masdi[i].keys()), 'clones.')
 ll=np.array(ll)

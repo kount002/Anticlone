@@ -52,6 +52,12 @@ def janitor(): #cleanup intermediate files
     
 
 def collector(pathin, r=-1): #process file and gets unique reads
+    
+    def cust_round(val, r=10):
+        rval=int(r*(round(int(val)/r)))
+        return(rval)
+    
+    
     print('Collecting on ', pathin)
     mastdict=defaultdict(list)
     with open(pathin, 'r') as infl:
@@ -63,8 +69,10 @@ def collector(pathin, r=-1): #process file and gets unique reads
                 continue
             name=[lines[0]]            
             chrn=lines[2]
-            pos1=round(int(lines[3]), r) #convert into int roundup to reduce bins and reduce resolution
-            pos2=round(int(lines[7]), r)
+            pos1=cust_round(lines[3], r)
+            pos2=cust_round(lines[7], r)
+            #pos1=round(int(lines[3]), r) #convert into int roundup to reduce bins and reduce resolution
+            #pos2=round(int(lines[7]), r)  #old function using order 
             annt=[lines[-1].strip('XF:Z:')]
             key=(chrn, pos1, pos2)
             #print(key,'masterkey')
@@ -84,8 +92,10 @@ def collector(pathin, r=-1): #process file and gets unique reads
                 continue
             name=[lines[0]]            
             chrn=lines[2]
-            pos1=round(int(lines[3]), r) #convert into int roundup to reduce bins and reduce resolution
-            pos2=round(int(lines[7]), r)
+            pos1=cust_round(lines[3], r)
+            pos2=cust_round(lines[7], r)                        
+            #pos1=round(int(lines[3]), r) #convert into int roundup to reduce bins and reduce resolution
+            #pos2=round(int(lines[7]), r) #old 10/100/1000 based rounding
             annt=[lines[-1].strip('XF:Z:')]
             if (chrn, pos2, pos1) in mastdict: #check if mate is present in the mastdict
                 continue
@@ -107,7 +117,7 @@ def collector(pathin, r=-1): #process file and gets unique reads
     return(mastdict)
 
 def mast_mk(pathin): #makes a dict that combines all sample dictionaries 
-    mastdict=collector(pathin, r=args.bin)
+    mastdict=collector(pathin, r=int(args.bin))
     #saving file to disk
     #? do you need dic.txt if a sql db is created?
     #pathout=inpp+'/'+sample+'dic.txt' #location for the dictionary out file
@@ -160,7 +170,7 @@ def save_db(mast): #(master dict with all clones, ) converts dict with clones in
     conn.close()
             
 def save_pickle(mast): #saves dictionary as a pickle file for use in other scripts
-    pathf=os.path.join(innp, innp+'.pkl')
+    pathf=os.path.join(inpp, inpp+'.pkl')
     with open(pathf, 'wb') as handle:
         pickle.dump(mast, handle)
     return()            
@@ -197,13 +207,13 @@ parser = argparse.ArgumentParser(description='''Converts police tables into sqli
 parser.add_argument('-i', '--input', help='input sam/bam file to parse', required=True )
 parser.add_argument('-n', '--name_prefix', help='add a prefix to the db name', default='clone_count')
 parser.add_argument('-b', '--batch', help='mask to batch files "y"')
-parser.add_argument('-f', '--bin', help='bin size for clustering for 10 use "-1", for 100 use "-2"', default=-1)
+parser.add_argument('-f', '--bin', help='bin size for clustering for 10 use "-1", for 100 use "-2" #JUST USE 10, 20, 300 etc.#', default=-1)
 args = parser.parse_args()
 
 
 inp1=args.input
 
-#clone_count/*.sam' #windos hack for the argparse/special charater
+inp1='clone_count100/*.sam' #windos hack for the argparse/special charater
 
 sourcefl=inp1.split('/')
 inpp=args.name_prefix
