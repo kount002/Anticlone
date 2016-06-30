@@ -55,8 +55,11 @@ def clon_inter(ll): #counts number of intersecting clones that are non-zero in a
     print('There are ', clnz, 'intersecting clones', round(100*clnz/cltot, 2), '% of total')
     return()
 
- 
-
+def prune_dic(masdi, r=1): #remove clones with less or equeal then r reads 
+    for i in masdi:
+        for x,v in masdi[i].items():
+           if v[0]<=r:
+              masdi[i].pop(x)
 
 if len(sys.argv)<4: #check for agrument presence
     print('Usage: graphing.py pickle.pkl base_sample \
@@ -76,20 +79,30 @@ for i in sys.argv[2:]: #check that specified samples are in pickle
         print (masdi.keys())
         sys.exit(2)
 
+
+
+masdi=prune_dic(masdi) 
+
 inpp=os.path.dirname(sys.argv[1])
 mlist=set() # create master list of all clones
 samplist=[]
 for i in sys.argv[2:]:
     samplist.append(i) #this to be used for graphs, not here
     #need a set here then convert to list
-        
+    
     mlist.update([x for x in masdi[i]])
     #mlist=mlist+[x for x in masdi[i]]   
 print('Total clones to graph:', len(mlist))
 
+#mlist=sorted(mlist)
+#shlist=[(a,b) for (a, b,c) in mlist]
+#mlist=set(shlist)
+#print('Was reduced to', len(mlist))    
+
+
 
 ll=[]
-for i in sys.argv[2:]: # make array of counts out of dictionary 
+for i in sys.argv[2:]: # make array of counts out of dictionary
     lis=[masdi[i][x][0] if x in masdi[i] else 0 for x in mlist] #
     ll.append(lis)
     print(i, 'contains', len(masdi[i].keys()), 'clones.')

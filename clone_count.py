@@ -51,7 +51,7 @@ def janitor(): #cleanup intermediate files
     #os.remove() # hta.sam from converter?
     
 
-def collector(pathin, r=-1): #process file and gets unique reads
+def collector(pathin, r=10): #process file and gets unique reads
     
     def cust_round(val, r=10):
         rval=int(r*(round(int(val)/r)))
@@ -213,7 +213,7 @@ args = parser.parse_args()
 
 inp1=args.input
 
-inp1='clone_count100/*.sam' #windos hack for the argparse/special charater
+#inp1='clone_count100/*.sam' #windows hack for the argparse/special charater
 
 sourcefl=inp1.split('/')
 inpp=args.name_prefix
