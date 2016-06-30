@@ -28,6 +28,9 @@ import glob
 from collections import defaultdict
 import sqlite3
 import pickle
+import pandas as pd
+import numpy as np
+
 
 #import sqlite3
 #import csv
@@ -51,7 +54,7 @@ def janitor(): #cleanup intermediate files
     #os.remove() # hta.sam from converter?
     
 
-def collector(pathin, r=-1): #process file and gets unique reads
+def collector(pathin, r=10): #process file and gets unique reads
     
     def cust_round(val, r=10):
         rval=int(r*(round(int(val)/r)))
@@ -170,7 +173,8 @@ def save_db(mast): #(master dict with all clones, ) converts dict with clones in
     conn.close()
             
 def save_pickle(mast): #saves dictionary as a pickle file for use in other scripts
-    pathf=os.path.join(inpp, inpp+'.pkl')
+    suff= ('_dic' if type(mast)==dict else '_df')    
+    pathf=os.path.join(inpp, inpp+suff+'.pkl')
     with open(pathf, 'wb') as handle:
         pickle.dump(mast, handle)
     return()            
@@ -182,6 +186,25 @@ def dic_reduce(mast): #replaces set of read names with count
             mast[sample][clone][0]=count
     return(mast)
     
+
+def dic_df(mast): #convert master dictionary to list of dataframes
+
+    dfmast=pd.DataFrame(index=None, columns=['Annotation'])
+    dfmast['Annotation'].astype(str)
+    for i in mast:
+        dftm=pd.DataFrame.from_dict(mast[i], orient='index')
+        dftm.columns=[i, 'Annotation']
+        dftm['Annotation']=dftm['Annotation'].astype(str).map(lambda x: x.strip("{'}"))
+        dfmast=dfmast.join(dftm, how='outer', lsuffix=i)
+        
+    lc=['Annotation']+['Annotation'+i for i in mast]
+    dfmast[lc]=dfmast[lc].fillna('none')
+    #print(dfmast[lc].head())
+    dfmast['Annotation']=dfmast[lc].apply(lambda x: tuple(x.unique()), axis=1)
+    dfmast['Annotation']=dfmast['Annotation'].apply(lambda x: tuple([c for c in x if c!='none']))
+    dfmast.drop(lc[1:], axis=1, inplace=True)
+    
+    return(dfmast)
     
 #def dic_invert(mast): # under development (changes dict structure so the clone is top key)
 #    cdic=defaultdict([list])
@@ -203,7 +226,7 @@ def dic_reduce(mast): #replaces set of read names with count
 ################# function section is above ############
        
 
-parser = argparse.ArgumentParser(description='''Converts police tables into sqlite db.''')
+parser = argparse.ArgumentParser(description='''Converts bam/sam files into dataframe and dictionary for analysis''')
 parser.add_argument('-i', '--input', help='input sam/bam file to parse', required=True )
 parser.add_argument('-n', '--name_prefix', help='add a prefix to the db name', default='clone_count')
 parser.add_argument('-b', '--batch', help='mask to batch files "y"')
@@ -213,7 +236,7 @@ args = parser.parse_args()
 
 inp1=args.input
 
-inp1='clone_count100/*.sam' #windos hack for the argparse/special charater
+inp1='clone_count/*.sam' #windos hack for the argparse/special charater
 
 sourcefl=inp1.split('/')
 inpp=args.name_prefix
@@ -254,18 +277,19 @@ else:
                 mast=mast_mk(pathin)
                                 
         dic_reduce(mast)
-        save_db(mast) #convert master dict to sqlite db
+        #save_db(mast) #convert master dict to sqlite db
         save_pickle(mast) #convert master dict to pickle dump
-    
-       
+        save_pickle(dic_df(mast))
         
+        #dfmast=dic_df(mast)
+    
+             
 print('im done')        
 
         
 
 #if __name__=='__main__':
 #    main()
-
 
 
 #def mk_db():
