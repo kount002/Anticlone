@@ -67,7 +67,7 @@ def collector(pathin, r=10): #process file and gets unique reads
         for line in infl: # loop processes single reads, paired see later
             lines=line.rstrip().split('\t')
             if lines[7]!='0': # does zero reads first
-                continue
+                continue      # if pair read has value jump ouf of the cycle
             if len(lines[6])>1: # removes reads that al to diff chr (check if sets for names and annotations are present in the list
                 continue
             name=[lines[0]]            
