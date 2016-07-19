@@ -7,7 +7,8 @@ Takes bam file as input and counts all unique clones(read pairs) using unique co
 As input the program will require -i
 USAGE:
 clone-count.py -i input_bam_file [-n output_file_name_prefix] [-b mask_for_batch_processing]
-Example python3.3 clone-count.py -i Processed_data/*/tophat/accepted_reads.bam
+Example python3.3 clone-count.py -i Processed_data/EK\*/tophat/accepted_hits.bam
+Need to escape *
 check is done for the length of path(4), processes as a batch
 Dictionary structure:
 mast:
@@ -242,6 +243,7 @@ sourcefl=inp1.split('/')
 inpp=args.name_prefix
 mast={}
 
+print('Source files:', inp1, sourcefl)
 
 if not args.batch: # decide if one file to test or maltiple files to process
     print('not batch processing is in development')
@@ -252,7 +254,9 @@ else:
         try: #try to use the specified bam files
         #if len(sourcefl)==4 and sourcefl[0]=='Processed_data': #check if own processing pipe
             read_fl=glob.glob(inp1)
-            os.system('mkdir -p {0}'.format(inpp)) #make output directory    
+            os.system('mkdir -p {0}'.format(inpp)) #make output directory
+            if not read_fl:
+                print('Cannot get any files, check path')   
             for f in read_fl: #starts proceessing of individual files
                 sourcefl=f.split('/')
                 sample=sourcefl[1]
@@ -282,9 +286,10 @@ else:
         save_pickle(dic_df(mast))
         
         #dfmast=dic_df(mast)
-    
+    else:
+        print('Cannot figure the path', sourcefl)    
              
-print('im done')        
+print('Im done')        
 
         
 
