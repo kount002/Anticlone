@@ -6,25 +6,31 @@ Need to supply path to two pickled pandas libraries
 Usage: lib_combine.py ~/anal/path2 ~/anal/path2
 """
 
+import matplotlib
+matplotlib.use('Agg')
 import sys
 import pickle
 import pandas as pd
 import numpy as np
 import matplotlib.pylab as plt
+from sklearn import linear_model
 
-def open_lib(path):
+
+def open_lib(path): #loads pickled df into memory
     try: 
-        with open(path1, 'rb') as f:
+        with open(path, 'rb') as f:
             lib=pickle.load(f)
+        print('Read', path)
+        return(lib)
     except:
-        print('Cannot open', path1, '\n check path')
-    return(lib)
+        print('Cannot open', path, '\n check path')
+
 
 
 
 ##############main##############
-path1=sys.argv[1]
-path2=sys.argv[2]
+#path1=sys.argv[1]
+#path2=sys.argv[2]
 
 #parameters 
 path1='~/anal/human/hiseq_trio/clone_count/clone_count_df.pkl'
@@ -38,6 +44,22 @@ df2=open_lib(path2)
 print('Columns from right table:', df1.columns)
 print('Columns from left table:', df2.columns)
 df=df1.join(df2[keep], how='outer', lsuffix='l')
+
+#fileter (try filter function if not working)
+mod=(labmda x: re.search(r'[0-9]{3}(?!N)', x).group())
+xl=[x for x in df.columns if mod(x)]
+
+
+#prep data for multiple regression
+dfy=df.A16000
+dfx=df[xl]
+
+mod=linear_model.LinearRegresson()
+mod.fit(dfx, dfy)
+
+coef=mod.coef_
+print('Coefficients for ', dfx.columns, 'are', coef)
+
 
 
 
