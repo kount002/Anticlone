@@ -281,11 +281,11 @@ else:
                 mast=mast_mk(pathin)
                                 
         dic_reduce(mast)
-        #save_db(mast) #convert master dict to sqlite db
-        save_pickle(mast) #convert master dict to pickle dump
-        save_pickle(dic_df(mast))
+    #save_db(mast) #convert master dict to sqlite db
+    save_pickle(mast) #convert master dict to pickle dump
+    save_pickle(dic_df(mast))
         
-        #dfmast=dic_df(mast)
+    #dfmast=dic_df(mast)
     else:
         print('Cannot figure the path', sourcefl)    
              
