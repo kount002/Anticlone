@@ -5,12 +5,13 @@ import sys
 import pandas as pd
 import numpy as np
 import pickle
-import matplotlib
-matplotlib.use('Agg')  #need this to turn off figure display
+import seaborn as sns
+#import matplotlib
+#matplotlib.use('Agg')  #need this to turn off figure display
 import matplotlib.pyplot as plt
 
 
-def norm_df(df, lc): # do not use
+def norm_df(df, lc): # do not use this function too slow
 # clone_count.py outputs raw clone counts. Function normalizes count as: count*ave(sum of sums)/specific sums
     lcs=[x for x in lc if x!='Annotation']
     for col in lcs:
@@ -26,6 +27,8 @@ def norm_varr(df):
 
     lc=list(df.columns)
     lcs=[x for x in lc if x!='Annotation']
+    repls=[x for x in range(10)]  #filter out counts that <10. Do it here to add more weight to highly expressed genes
+    df.replace(repls, 0, inplace=True) #filter out counts that <10
     df.fillna(0, inplace=True)
     aar=df[lcs].values
     ssums=aar.sum(axis=0) #sum based on column
@@ -34,7 +37,6 @@ def norm_varr(df):
     df[lcs]=pd.DataFrame(aar, index=df.index)
     df.replace(0, np.nan, inplace=True) #replaces all zeros for NaN
     df[lcs]=np.log10(df[lcs]) #log-transfrom data
-    
     return(df)
 
 def anal_prep(df):
@@ -50,7 +52,6 @@ def anal_prep(df):
     dfx.replace(to_replace=1, value=np.nan, inplace=True) # prepares for removal of clones with all basal expression (1)
     dfx.dropna(subset=lcs, how='all', inplace=True)
     dfx.replace(to_replace=np.nan, value=1, inplace=True)    
-
     return(dfx)
 
 
@@ -90,6 +91,15 @@ def scat_matrix(): #need lcs
     g=sns.PairGrid(dfx)
     g=g.map(plt.scatter, alpha=0.5)
     plt.savefig('namefig.png')
+    
+def cluster_map():
+    plt.clf()
+    corr=dfx.corr()
+    cmap=sns.diverging_palette(120, 5, as_cmap=True)
+    sns.set(font_scale=1.6)
+    fig=sns.clustermap(corr, cmap=cmap, linewidths=.5)
+    plt.setp(fig.ax_heatmap.yaxis.get_majorticklabels(), rotation=0)
+    fig.savefig('clustermap.png')
 
 
 #############MAIN  ###########################
@@ -115,18 +125,22 @@ print('The DataFrame contains following columns:', lc)
 if not isinstance(df, pd.core.frame.DataFrame):
     print('Pickle file is not Pandas DataFrame')
     sys.exit(2)
-df=norm_varr(df) #normalize data by total count
-del(df['Undetermined'])
-dfx=anal_prep(df) #min expression is log(10)=1
+df=norm_varr(df) #normalize data by total count and log transform
 
-if sys.argv[2] and sys.argv[3]: ###sss samples are not yet implemented
+#del(df['Undetermined'])
+dfx=anal_prep(df) #set min expression at log(10)=1
+
+if len(sys.argv)>3: ###sss samples are not yet implemented
     qrs=sys.argv[2] #query sample of interest
     sss=sys.argv[3:] #list of samples to substruct
     #call make difference df 
 
     print('Gather 2x fold increased in', qrs, 'over', sss)
-    dff=pd.DataFrame(dfx['Annotation'])
+    try:
+        dff=pd.DataFrame(dfx['Annotation'])
     #dff[qrs]=1
+    except:
+        pass
     lcf=[x for x in list(dfx.columns) if x!='Annotation' and x!=qrs]
     for i in lcf:
         ij=qrs+'/'+i
