@@ -103,46 +103,53 @@ def cluster_map():
 
 
 #############MAIN  ###########################
-
-if len(sys.argv)<2: #check for agrument presence
-    print('Usage: graphing.py pickle_df.pkl base_sample \
-    substract_sample [substruct_sample2 ...]')
-    sys.exit(2)
-
-try:    #check that pickle exists
-    with open(sys.argv[1], 'rb') as handle:
-        df=pickle.load(handle)
-except:
-    print('Cannot open pickle file. Run clone_count or verify the path.')
-    sys.exit(2)
-
-
-lc=list(df.columns)
-
-print('The DataFrame contains following columns:', lc)
-
-#dfdf=norm_df(df)
-if not isinstance(df, pd.core.frame.DataFrame):
-    print('Pickle file is not Pandas DataFrame')
-    sys.exit(2)
-df=norm_varr(df) #normalize data by total count and log transform
-
-#del(df['Undetermined'])
-dfx=anal_prep(df) #set min expression at log(10)=1
-
-if len(sys.argv)>3: ###sss samples are not yet implemented
-    qrs=sys.argv[2] #query sample of interest
-    sss=sys.argv[3:] #list of samples to substruct
-    #call make difference df 
-
-    print('Gather 2x fold increased in', qrs, 'over', sss)
+def main():
+    
+    if len(sys.argv)<2: #check for agrument presence
+        print('Usage: graphing.py pickle_df.pkl base_sample \
+        substract_sample [substruct_sample2 ...]')
+        sys.exit(2)
+    
+    try:    #check that pickle exists
+        with open(sys.argv[1], 'rb') as handle:
+            df=pickle.load(handle)
+    except:
+        print('Cannot open pickle file. Run clone_count or verify the path.')
+        sys.exit(2)
+    
+    lc=list(df.columns)
+    print('The DataFrame contains following columns:', lc)
+    #dfdf=norm_df(df)
+    if not isinstance(df, pd.core.frame.DataFrame):
+        print('Pickle file is not Pandas DataFrame')
+        sys.exit(2)
+    
     try:
-        dff=pd.DataFrame(dfx['Annotation'])
-    #dff[qrs]=1
+        del(df['Undetermined'])
     except:
         pass
-    lcf=[x for x in list(dfx.columns) if x!='Annotation' and x!=qrs]
-    for i in lcf:
-        ij=qrs+'/'+i
-        dff[ij]=dfx[qrs]-dfx[i]
-    print('dff dataframe contains expression differences')
+    
+    df=norm_varr(df) #normalize data by total count and log transform
+    dfx=anal_prep(df) #set min expression at log(10)=1
+    
+    if len(sys.argv)>3: ###sss samples are not yet implemented
+        qrs=sys.argv[2] #query sample of interest
+        sss=sys.argv[3:] #list of samples to substruct
+        #call make difference df 
+    
+        print('Gather 2x fold increased in', qrs, 'over', sss)
+        try:
+            dff=pd.DataFrame(dfx['Annotation'])
+        #dff[qrs]=1
+        except:
+            pass
+        lcf=[x for x in list(dfx.columns) if x!='Annotation' and x!=qrs]
+        for i in lcf:
+            ij=qrs+'/'+i
+            dff[ij]=dfx[qrs]-dfx[i]
+        print('dff dataframe contains expression differences')
+    
+    
+if __name__ =='__main__':
+    main()
+    

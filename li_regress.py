@@ -4,6 +4,7 @@ Created on Tue Jul 19 13:34:33 2016
 Allows to work with clone counts from different pikles
 Need to supply path to two pickled pandas libraries
 Usage: lib_combine.py ~/anal/path2 ~/anal/path2
+Requires explore_graph.py in the same folder to work
 """
 
 import matplotlib
@@ -15,6 +16,7 @@ import numpy as np
 import matplotlib.pylab as plt
 from sklearn import linear_model
 import re
+import explore_graph as exg #custom file 
 
 def open_lib(path): #loads pickled df into memory
     try: 
@@ -70,7 +72,8 @@ def anal_prep(df):
 #parameters 
 path2='/home/kount002/anal/human/miphage/clone_count/clone_count_df.pkl'
 path1='/home/kount002/anal/human/phm_diversity/custom_prime/clone_count/clone_count_df.pkl'
-keep=['A16000', 'Annotation']
+keep1=[] #empty will use all columns
+keep2=['A16000', 'Annotation'] #empty will use all columns
 
 
 #join tables from two df pickles
@@ -79,7 +82,13 @@ df2=open_lib(path2)
 print('Columns from right table:', df1.columns)
 print('Columns from left table:', df2.columns)
 
-df=df1.join(df2[keep], how='outer', lsuffix='l')
+if not keep1:
+    keep1=df1.columns
+if not keep2:
+    keep2=df2.columns
+
+
+df=df1[keep1].join(df2[keep2], how='outer', lsuffix='l')
 df.dropna(how='all', axis=1, inplace=True) #drop empty rows
 df['Annotation'].fillna(df.Annotationl, inplace=True) #collaple Annotations into one column
 del(df['Annotationl'])
@@ -90,8 +99,8 @@ xl=[x for x in df.columns if mod(x)]
 
 
 #normalizes values and log transforms them before regression
-df=norm_varr(df)
-df=anal_prep(df)
+df=exg.norm_varr(df)
+df=exg.anal_prep(df)
 
 
 #prep data for multiple regression
