@@ -16,7 +16,6 @@ import numpy as np
 import matplotlib.pylab as plt
 from sklearn import linear_model
 import re
-import explore_graph as exg #custom file 
 
 def open_lib(path): #loads pickled df into memory
     try: 
@@ -80,21 +79,24 @@ model=linear_model.LinearRegression(fit_intercept=False)
 model.fit(dfx, dfy)
 
 coef=model.coef_
-coef=np.array([0.4, 0.4, 0.30])
-
 print('Coefficients for ', dfx.columns, 'are', coef)
 
 dfpy=dfr.iloc[:,:3].pow(coef, axis=1).product(axis=1) #formula to calculate predicted value based on coef
 #sum((expression count)**coef)
+dfpy=pd.DataFrame(dfpy)
+dfpy.columns=['Regress']
+dfpy['Summed']=dfr.iloc[:,:3].sum(axis=1)
+dfpy=dfpy.join(dfr[['A16000', 'Annotation']], how='inner')
 
 with open('560_561_570LR.pkl','wb') as f:
     pickle.dump(pd.DataFrame(dfpy), f)
 #plot scatter for predicted model
+
 dfpy.replace(np.nan, 0, inplace=True)
 #py=model.predict(df.iloc[:,:3]) #adjust fo reduced counts after small coef
 
 
 plt.figure(figsize=(6,6))
-plt.scatter(np.log10(dfr['A16000']), np.log10(dfpy))
-plt.savefig('test.png')
+plt.scatter(np.log10(dfr['A16000']), np.log10(dfpy['Summed']))
+plt.savefig('Scatter_test.png')
  
