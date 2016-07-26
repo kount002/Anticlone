@@ -28,41 +28,12 @@ def open_lib(path): #loads pickled df into memory
         print('Cannot open', path, '\n check path')
 
 
-
-def norm_varr(df):
-# clone_count.py outputs raw clone counts. Function normalizes count as: count*ave(sum of sums)/specific sums
-#may need to insert NaN back in place of 0. See what are your needs will be
-#log transfom in the last expression    
-    #very fast compared to pandas version
-
+def norm_f(df):
     lc=list(df.columns)
     lcs=[x for x in lc if x!='Annotation']
-    df.fillna(0, inplace=True)
-    aar=df[lcs].values
-    ssums=aar.sum(axis=0) #sum based on column
-    amp=ssums.mean()
-    aar=(aar*amp)/ssums
-    df[lcs]=pd.DataFrame(aar, index=df.index)
     df.replace(0, np.nan, inplace=True) #replaces all zeros for NaN
     df[lcs]=np.log10(df[lcs]) #log-transfrom data
-    
     return(df)
-
-def anal_prep(df):
-    #prepares the dataframe for expression analysis, log transform it
-    #changes all values <10 to 10
-    #removes clones with all log(10)
-    lc=list(df.columns)
-    lcs=[x for x in lc if x!='Annotation']
-    dfx=df.fillna(0)
-    arr=np.array(dfx[lcs])
-    arr[arr<1]=1
-    dfx[lcs]=pd.DataFrame(arr, index=dfx.index)
-    dfx.replace(to_replace=1, value=np.nan, inplace=True) # prepares for removal of clones with all basal expression (1)
-    dfx.dropna(subset=lcs, how='all', inplace=True)
-    dfx.replace(to_replace=np.nan, value=1, inplace=True)    
-
-    return(dfx)
 
 
 ##############main##############
@@ -89,23 +60,22 @@ if not keep2:
 
 
 df=df1[keep1].join(df2[keep2], how='outer', lsuffix='l')
-df.dropna(how='all', axis=1, inplace=True) #drop empty rows
 df['Annotation'].fillna(df.Annotationl, inplace=True) #collaple Annotations into one column
 del(df['Annotationl'])
-df.replace(to_replace=np.nan, value=0, inplace=True) #prep data for regression and lambda
-
 mod=(lambda x: True if re.search(r'EK[0-9]{3}(?!N)', x) else False)
 xl=[x for x in df.columns if mod(x)]
 
-
-#normalizes values and log transforms them before regression
-df=exg.norm_varr(df)
-df=exg.anal_prep(df)
+dfr=df.copy(deep=True)
+#remove low values and log transforms them before regression
+df=np.log10(df[xl+['A16000']])
+dfr=df.copy(deep=True)
+df.replace(np.nan, 1, inplace=True)
+dfm=df.loc[(df.iloc[:,:4]>1).any(axis=1),:] #extract rows with values over 1
 
 
 #prep data for multiple regression
-dfy=df.A16000
-dfx=df[xl]
+dfy=dfm.A16000
+dfx=dfm[xl]
 
 model=linear_model.LinearRegression(fit_intercept=False)
 model.fit(dfx, dfy)
@@ -114,13 +84,21 @@ coef=model.coef_
 print('Coefficients for ', dfx.columns, 'are', coef)
 
 #plot scatter for predicted model
+dfr.replace(np.nan, 0, inplace=True)
+py=model.predict(df.iloc[:,:3]) #adjust fo reduced counts after small coef
 
-py=model.predict(df.iloc[:,:3])
 
-with open('560_561_570LR.pkl','wb') as f:
-    pickle.dump(py, f)
- 
-plt.clf()
-plt.scatter(dfy, py)
+
+plt.figure(figsize=(6,6))
+plt.scatter(dfr['A16000'], py)
 plt.savefig('test.png')
 
+
+py10=10**py
+df[xl+['A16000']]=10**df[xl+['A16000']]
+
+df['CombPredict']=pd.DataFrame(py10, index=df.index)
+
+with open('560_561_570LR.pkl','wb') as f:
+    pickle.dump(df['CombPredict'], f)
+ 
