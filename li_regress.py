@@ -66,9 +66,8 @@ mod=(lambda x: True if re.search(r'EK[0-9]{3}(?!N)', x) else False)
 xl=[x for x in df.columns if mod(x)]
 
 dfr=df.copy(deep=True)
-#remove low values and log transforms them before regression
+#remove low values and log transforms them before regression use filtered values for model and real for prediction
 df=np.log10(df[xl+['A16000']])
-dfr=df.copy(deep=True)
 df.replace(np.nan, 1, inplace=True)
 dfm=df.loc[(df.iloc[:,:4]>1).any(axis=1),:] #extract rows with values over 1
 
@@ -81,24 +80,21 @@ model=linear_model.LinearRegression(fit_intercept=False)
 model.fit(dfx, dfy)
 
 coef=model.coef_
+coef=np.array([0.4, 0.4, 0.30])
+
 print('Coefficients for ', dfx.columns, 'are', coef)
 
-#plot scatter for predicted model
-dfr.replace(np.nan, 0, inplace=True)
-py=model.predict(df.iloc[:,:3]) #adjust fo reduced counts after small coef
+dfpy=dfr.iloc[:,:3].pow(coef, axis=1).product(axis=1) #formula to calculate predicted value based on coef
+#sum((expression count)**coef)
 
+with open('560_561_570LR.pkl','wb') as f:
+    pickle.dump(pd.DataFrame(dfpy), f)
+#plot scatter for predicted model
+dfpy.replace(np.nan, 0, inplace=True)
+#py=model.predict(df.iloc[:,:3]) #adjust fo reduced counts after small coef
 
 
 plt.figure(figsize=(6,6))
-plt.scatter(dfr['A16000'], py)
+plt.scatter(np.log10(dfr['A16000']), np.log10(dfpy))
 plt.savefig('test.png')
-
-
-py10=10**py
-df[xl+['A16000']]=10**df[xl+['A16000']]
-
-df['CombPredict']=pd.DataFrame(py10, index=df.index)
-
-with open('560_561_570LR.pkl','wb') as f:
-    pickle.dump(df['CombPredict'], f)
  
