@@ -19,11 +19,16 @@ def norm_df(df, lc): # do not use this function too slow
         df[col]=df[col].apply(lambda x: x/df[col].sum()*df[lcs].sum().mean())
     return(df)
     
-def norm_varr(df):
-# clone_count.py outputs raw clone counts. Function normalizes count as: count*ave(sum of sums)/specific sums
-#may need to insert NaN back in place of 0. See what are your needs will be
-#log transfom in the last expression    
-    #very fast compared to pandas version
+def norm_varr(df, method='tc'):
+    ''' clone_count.py outputs raw clone counts. 
+    Takes values for normalization methods: 'tc' - total count or 'med' - median
+    'tc': (default) Function normalizes count as: count*ave(sum of sums)/specific sums
+    'med':  Function normalizes count as: count*ave(of medians)/specific median
+    does ignores 0 counts for median calculation.
+    
+    #may need to insert NaN back in place of 0. See what are your needs will be
+    #log transfom in the last expression    
+    #very fast compared to pandas version '''
 
     lc=list(df.columns)
     lcs=[x for x in lc if x!='Annotation']
@@ -31,9 +36,18 @@ def norm_varr(df):
     df.replace(repls, 0, inplace=True) #filter out counts that <10
     df.fillna(0, inplace=True)
     aar=df[lcs].values
-    ssums=aar.sum(axis=0) #sum based on column
-    amp=ssums.mean()
-    aar=(aar*amp)/ssums
+    if method=='med':
+        print('Using median normalization.')
+        aarm=np.ma.masked_array(aar, mask=aar<=0) #mask 0 counts
+        smed=np.ma.median(aarm, axis=0) #median based on columns
+        amp=smed.mean()
+        aar=(aar*amp)/smed
+    else:
+        print('Using total count (tc) normalization')
+        ssums=aar.sum(axis=0) #sum based on column
+        amp=ssums.mean()
+        aar=(aar*amp)/ssums
+
     df[lcs]=pd.DataFrame(aar, index=df.index)
     df.replace(0, np.nan, inplace=True) #replaces all zeros for NaN
     df[lcs]=np.log10(df[lcs]) #log-transfrom data

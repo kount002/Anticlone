@@ -10,6 +10,7 @@ takes log-transfromed data, so works with fold increase in expression
 #################### Param ######################
 inputs='hts.pkl' #path
 save='fold_out_master.csv' #path
+method='med' #choose normalization method between 'tc' and 'med'
 #negative grOUPS to subtract
 groups={
     'gr1':['KNOS120','KNOS220','KNOS20'],
@@ -52,7 +53,7 @@ def sub_list(groups):
 
 
 df=csa.open_lib(inputs) #open lib
-df=exg.norm_varr(df)    #normalize and log transform
+df=exg.norm_varr(df, method)    #normalize and log transform
 df.fillna(0, inplace=True)
 
 dft=subtract_vals(df, groups) #determine subtract value
