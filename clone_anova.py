@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- codiing: utf-8 -*-
 """
 Created on Mon Jul 25 11:04:37 2016
 USAGE: clone_stat.py master.pkl
@@ -7,14 +7,15 @@ and returns clones that are significantly different
 
 """
 ################### Params ###############
-inputs='hts.pkl' #path
+inputs='master.pkl' #path
 save='stat_out_master.csv' #path
 #check list of analyses?
 kruskal=0 #if set to 1 will use non-parametric anova
+method='med' #normalization: 'med' for median, 'tc' for total count
 groups={
     'gr1':['K20120','K20320','K20420','K20520','K20620'],
-    'gr2':['KNOS20','KNOS120','KNOS220'],
-    'gr3':['KRut120','KRut220','KAbMix20']
+    'gr2':['K10820','K10920','K11020','K11120','K11220'],
+    'gr3':['K10120','K10220','K10320','K10420','K10520']
         }
 
 #'K10820','K10920','K11020','K11120','K11220'],
@@ -58,7 +59,7 @@ def convert_gr(df, groups):
         groupn[cols]=tm #dic with corresponsind indeces   
     return(groupn)    
 
-def get_values(dftup):
+def get_values(dftup, groupn):
     ''' assign expression values to a list of lists for use as *args '''
     args=[]
     for i in groupn.keys():
@@ -68,21 +69,21 @@ def get_values(dftup):
         
 #################### main ###################
 def main():        
-    print('Using non-parametric Anova', kruskal)
+    print('Using parametric/non-parametric Anova "0/1:"', kruskal)
             
     #load library
     df=open_lib(inputs)  #load library
-    df=exg.norm_varr(df) #normalize and log transform
+    df=exg.norm_varr(df, 'med') #normalize and log transform
     df.fillna(0, inplace=True)
     
     #convert groups ID to indeces
-    groupn=convert_gr(groups)
+    groupn=convert_gr(df, groups)
     
     #Anova one way test 
     Flist=[]
     plist=[]
     for i in df.itertuples():
-        args=get_values(i[1:])
+        args=get_values(i[1:], groupn)
         if not kruskal:
             F,p=stats.f_oneway(*args) #parametric Anova
         else:

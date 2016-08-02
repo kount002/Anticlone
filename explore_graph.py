@@ -32,9 +32,11 @@ def norm_varr(df, method='tc'):
 
     lc=list(df.columns)
     lcs=[x for x in lc if x!='Annotation']
-    repls=[x for x in range(10)]  #filter out counts that <10. Do it here to add more weight to highly expressed genes
-    df.replace(repls, 0, inplace=True) #filter out counts that <10
-    df.fillna(0, inplace=True)
+
+    repls=[x for x in range(10)]  #filter out counts that <10. Do it here to add more weight to highly expressed genes in selected samples. NOS samples have low level of low expression values
+    df.replace(repls, 10, inplace=True) #filter out counts that <10, make them 10
+    df.fillna(10, inplace=True)         #fill NaNs with 1   
+    
     aar=df[lcs].values
     if method=='med':
         print('Using median normalization.')
@@ -43,13 +45,13 @@ def norm_varr(df, method='tc'):
         amp=smed.mean()
         aar=(aar*amp)/smed
     else:
-        print('Using total count (tc) normalization')
+        print('Using total count (tc) normalization') # deafault
         ssums=aar.sum(axis=0) #sum based on column
         amp=ssums.mean()
         aar=(aar*amp)/ssums
 
     df[lcs]=pd.DataFrame(aar, index=df.index)
-    df.replace(0, np.nan, inplace=True) #replaces all zeros for NaN
+    df.replace(0, np.nan, inplace=True) #replaces all zeros for NaN before log transform
     df[lcs]=np.log10(df[lcs]) #log-transfrom data
     return(df)
 

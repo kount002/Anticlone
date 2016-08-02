@@ -22,8 +22,12 @@ inputs={
     
     'clone_count/clone_count_df.pkl':
     [],
-    'clone_count/clone_count_dfx.pkl':
-    []    
+    '../phm_diversity/custom_prime/560_561_570LR.pkl':
+    [],
+    '../miphage/clone_count/clone_count_df.pkl':
+    ['G20RUT', 'E20201'] ,
+    '../tri_stage/clone_count/clone_count_df.pkl':
+    ['20120','AbMix20', 'NOS20']   
     
     }
 save='master.pkl' #name of file to save to
@@ -54,6 +58,8 @@ for i in inputs.keys():
     keep=inputs.get(i)
     if not keep:
         keep=dft.columns
+    else:
+        keep.append('Annotation')
     dfmast=dfmast.join(dft[keep], how='outer', lsuffix='l')
     dfmast['Annotation'].fillna(dfmast['Annotationl'], inplace=True) #collaple Annotations into one column
     del(dfmast['Annotationl'])
@@ -62,7 +68,6 @@ print('\n Master df was build. Shape:{0}; Columns {1}'.format(dfmast.shape, dfma
 with open(save, 'wb') as f:
     pickle.dump(dfmast, f)
 print('\n Saved as', save)
-
 
 
 
