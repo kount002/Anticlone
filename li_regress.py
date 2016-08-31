@@ -89,7 +89,8 @@ dfpy['Summed']=dfr.iloc[:,:3].sum(axis=1)
 dfpy=dfpy.join(dfr[['A16000', 'Annotation']], how='inner')
 
 with open('560_561_570LR.pkl','wb') as f:
-    pickle.dump(pd.DataFrame(dfpy), f)
+    #pickle.dump(pd.DataFrame(dfpy), f)
+    pickle.dump(dfpy, f)
 #plot scatter for predicted model
 
 dfpy.replace(np.nan, 0, inplace=True)
