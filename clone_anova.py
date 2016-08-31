@@ -9,7 +9,7 @@ and returns clones that are significantly different
 ################### Params ###############
 inputs='hts.pkl' #path
 save='stat_out_master_rut.csv' #path
-method='upper' #normalalizaiton method
+method='upper' #normalalizaiton method (upper, tc, med, max)
 #check list of analyses?
 kruskal=0 #if set to 1 will use non-parametric anova
 groups={
@@ -71,7 +71,7 @@ def get_values(dftup, groupn):
         
 #################### main ###################
 def main():        
-    print('Using non-parametric Anova', kruskal)
+    print('Using parametric/non-parametric Anova "0/1"', kruskal)
             
     #load library
     df=open_lib(inputs)  #load library
