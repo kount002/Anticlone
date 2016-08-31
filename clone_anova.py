@@ -8,18 +8,21 @@ and returns clones that are significantly different
 """
 ################### Params ###############
 inputs='hts.pkl' #path
-save='stat_out_master.csv' #path
+save='stat_out_master_rut.csv' #path
+method='upper' #normalalizaiton method
 #check list of analyses?
 kruskal=0 #if set to 1 will use non-parametric anova
 groups={
     'gr1':['K20120','K20320','K20420','K20520','K20620'],
-    'gr2':['KNOS20','KNOS120','KNOS220'],
-    'gr3':['KRut120','KRut220','KAbMix20']
+    'gr2':['K10520','K10920','K11020','K11120','K11220'],
+    'gr3':['K10120','K10220','K10320','K10420','K10820'],
+    'gr4':['KAbMix20','KRut120','KRut220']
         }
 
 #'K10820','K10920','K11020','K11120','K11220'],
 #['K20120','K20320','K20420','K20520','K20620'
 #'K10120','K10220','K10320','K10420','K10520'
+#'KRut120','KRut220','KAbMix20'
 
 
 ############ imports #####################
@@ -58,7 +61,7 @@ def convert_gr(df, groups):
         groupn[cols]=tm #dic with corresponsind indeces   
     return(groupn)    
 
-def get_values(dftup):
+def get_values(dftup, groupn):
     ''' assign expression values to a list of lists for use as *args '''
     args=[]
     for i in groupn.keys():
@@ -72,20 +75,21 @@ def main():
             
     #load library
     df=open_lib(inputs)  #load library
-    df=exg.norm_varr(df) #normalize and log transform
+    df=exg.norm_varr(df, method) #normalize and log transform
     df.fillna(0, inplace=True)
     
     #convert groups ID to indeces
-    groupn=convert_gr(groups)
+    groupn=convert_gr(df, groups)
     
     #Anova one way test 
     Flist=[]
     plist=[]
     for i in df.itertuples():
-        args=get_values(i[1:])
+        args=get_values(i[1:], groupn)
         if not kruskal:
             F,p=stats.f_oneway(*args) #parametric Anova
         else:
+            F,p=np.nan, np.nan
             try: F,p=stats.mstats.kruskalwallis(*args) #non-parametric
             except: pass
         Flist.append(F)
@@ -97,8 +101,7 @@ def main():
     #extract only significat genes
     dfsig=df[df['p_value']<0.05].sort_values('p_value')[df['p_value']<0.05]
     
-    with open(save, 'wb') as f:
-        dfsig.to_csv(save)
+    dfsig.to_csv(save)
 
 
 if __name__ =='__main__':

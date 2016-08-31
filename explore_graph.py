@@ -25,6 +25,8 @@ def norm_varr(df, method='tc'):
     'tc': (default) Function normalizes count as: count*ave(sum of sums)/specific sums
     'med':  Function normalizes count as: count*ave(of medians)/specific median
     does ignores 0 counts for median calculation.
+    'max': uses max value to normalize
+    'upper': uses upper quartile normalization
     
     #may need to insert NaN back in place of 0. See what are your needs will be
     #log transfom in the last expression    
@@ -32,8 +34,8 @@ def norm_varr(df, method='tc'):
 
     lc=list(df.columns)
     lcs=[x for x in lc if x!='Annotation']
-    repls=[x for x in range(10)]  #filter out counts that <10. Do it here to add more weight to highly expressed genes
-    df.replace(repls, 0, inplace=True) #filter out counts that <10
+    #repls=[x for x in range(10)]  #filter out counts that <10. Do it here to add more weight to highly expressed genes
+    #df.replace(repls, 10, inplace=True) #filter out counts that <10
     df.fillna(0, inplace=True)
     aar=df[lcs].values
     if method=='med':
@@ -42,15 +44,29 @@ def norm_varr(df, method='tc'):
         smed=np.ma.median(aarm, axis=0) #median based on columns
         amp=smed.mean()
         aar=(aar*amp)/smed
-    else:
+    elif method=='max':
+        print('Using max value (max) normalization')
+        smax=aar.max(axis=0) #max based on columns
+        amp=smax.mean()
+        aar=(aar*amp)/smax  
+    elif method=='tc':
         print('Using total count (tc) normalization')
         ssums=aar.sum(axis=0) #sum based on column
         amp=ssums.mean()
         aar=(aar*amp)/ssums
+    elif method=='upper':
+        print('Using upper quartile normalization')
+        supper=np.percentile(aar, 98, axis=0)
+        amp=np.exp(np.mean(np.log(supper))) #geometric mean centers on most frequent
+        aar=(aar*amp)/supper
+    else:
+        pass
 
     df[lcs]=pd.DataFrame(aar, index=df.index)
+    df[df<10]= 10 #filter out counts that <10
     df.replace(0, np.nan, inplace=True) #replaces all zeros for NaN
     df[lcs]=np.log10(df[lcs]) #log-transfrom data
+    df=df.loc[(df[lcs]>1).any(axis=1),:]
     return(df)
 
 def anal_prep(df):
