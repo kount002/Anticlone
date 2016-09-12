@@ -8,15 +8,13 @@ and returns clones that are significantly different
 """
 ################### Params ###############
 inputs='hts.pkl' #path
-save='stat_out_master_rut.csv' #path
-method='upper' #normalalizaiton method (upper, tc, med, max)
+save='stat_out_master_HN.csv' #path
+method='upper90' #normalalizaiton method (upper, tc, med, max)
 #check list of analyses?
 kruskal=0 #if set to 1 will use non-parametric anova
 groups={
     'gr1':['K20120','K20320','K20420','K20520','K20620'],
-    'gr2':['K10520','K10920','K11020','K11120','K11220'],
-    'gr3':['K10120','K10220','K10320','K10420','K10820'],
-    'gr4':['KAbMix20','KRut120','KRut220']
+    'gr2':['K10120','K10220','K10320','K10420','K10820']
         }
 
 #'K10820','K10920','K11020','K11120','K11220'],
@@ -41,7 +39,7 @@ def open_lib(path): #loads pickled df into memory
     try: 
         with open(path, 'rb') as f:
             lib=pickle.load(f)
-        print('Read', path)
+            print('Read', path)
         return(lib)
     except:
         print('Cannot open', path, '\n check path')

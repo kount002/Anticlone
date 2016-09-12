@@ -27,6 +27,7 @@ def norm_varr(df, method='tc'):
     does ignores 0 counts for median calculation.
     'max': uses max value to normalize
     'upper': uses upper quartile normalization
+    Does not consider samples with 'NOS' in name when removes low count genes from analysis
     
     #may need to insert NaN back in place of 0. See what are your needs will be
     #log transfom in the last expression    
@@ -34,17 +35,20 @@ def norm_varr(df, method='tc'):
 
     lc=list(df.columns)
     lcs=[x for x in lc if x!='Annotation']
+    lcsnos=[x for x in lcs if not x.upper().find('NOS')>=0] #exclude NOS samples (for reduction)
     #repls=[x for x in range(10)]  #filter out counts that <10. Do it here to add more weight to highly expressed genes
     #df.replace(repls, 10, inplace=True) #filter out counts that <10
+    #df=df.loc[(df[lcs]>0).all(axis=1),:]
     df.fillna(0, inplace=True)
     aar=df[lcs].values
-    if method=='med':
+    aar[aar<2]=0
+    if method=='med': #DEPRECIATED, use upper50 instead
         print('Using median normalization.')
         aarm=np.ma.masked_array(aar, mask=aar<=0) #mask 0 counts
         smed=np.ma.median(aarm, axis=0) #median based on columns
         amp=smed.mean()
         aar=(aar*amp)/smed
-    elif method=='max':
+    elif method=='max': #DEPRECIATED, use upper100 instead
         print('Using max value (max) normalization')
         smax=aar.max(axis=0) #max based on columns
         amp=smax.mean()
@@ -54,19 +58,44 @@ def norm_varr(df, method='tc'):
         ssums=aar.sum(axis=0) #sum based on column
         amp=ssums.mean()
         aar=(aar*amp)/ssums
-    elif method=='upper':
-        print('Using upper quartile normalization')
-        supper=np.percentile(aar, 98, axis=0)
+    elif method.startswith('upper'):
+        print('Using upper quartile normalization:', method)
+        if method=='upper':
+            perc=90
+        else:
+            perc=int(method.lstrip('upper'))
+        aar=aar.astype(np.float) ##check performance Delete?
+        aar[aar==0]=np.nan ##check performance and delete
+        supper=np.nanpercentile(aar, perc, axis=0) #check, change nan
+        print(supper, perc)
+        if 0 in supper:
+            print('Encountered 0 value as percentile, use higher value for percentile')
         amp=np.exp(np.mean(np.log(supper))) #geometric mean centers on most frequent
+        aar=np.nan_to_num(aar)
         aar=(aar*amp)/supper
+    elif method.startswith('RLE'):
+        print('Using RLE normalization:', method)
+        if method=='RLE':
+            perc=50
+        else:
+            perc=int(method.lstrip('RLE'))
+        aar[aar==0]=1 #assume no nan left
+        meansample=np.exp(np.mean(np.log(aar), axis=1))
+        meansample=meansample.reshape(-1,1)
+        ratsample=aar/meansample
+        supper=np.percentile(ratsample, perc, axis=0)
+        amp=np.exp(np.mean(np.log(supper)))
+        supper=supper.reshape(1,-1)
+        aar=(amp*aar)/supper
     else:
-        pass
+        pass #for none normalization
 
     df[lcs]=pd.DataFrame(aar, index=df.index)
     df[df<10]= 10 #filter out counts that <10
-    df.replace(0, np.nan, inplace=True) #replaces all zeros for NaN
+    df.replace(0, np.nan, inplace=True) #replaces all zeros for NaN #doesn't make sence anymore
     df[lcs]=np.log10(df[lcs]) #log-transfrom data
-    df=df.loc[(df[lcs]>1).any(axis=1),:]
+    #df=df.loc[(df[lcs]>1).any(axis=1),:]
+    df=df.loc[(df[lcsnos]>1).any(axis=1),:] #may adjust value for a filter
     return(df)
 
 def anal_prep(df):
@@ -84,6 +113,59 @@ def anal_prep(df):
     dfx.replace(to_replace=np.nan, value=1, inplace=True)    
     return(dfx)
 
+def norm_plot(df):
+    ''' plot variance of all samples vs mean expression
+        helps to determine which normalization works best for a set 
+    '''
+    
+    lc=list(df.columns)
+    lcs=[x for x in lc if x!='Annotation']
+    aar=df[lcs].values
+    #gmeans=np.exp(np.mean(np.log(aar), axis=1))
+    gmeans=np.mean(aar, axis=1)
+    gmeans=gmeans.reshape(-1,1)
+    #rgmaar=aar/gmeans
+    varaar=np.std(aar, axis=1)
+    
+    #mvar=np.mean(varaar, axis=1)
+    #mvar=mvar.reshape(-1,1)
+    #varaar=varaar/mvar
+    varaar=varaar.reshape(-1,1)
+    gmaar=np.append(gmeans, varaar, axis=1)
+    #gmaar=gmaar[gmaar[:,0].argsort()]
+    
+    #sns.set()    
+    plt.scatter(gmaar[:,0], gmaar[:,1], alpha=0.4)
+    sns.regplot(gmaar[:,0], gmaar[:,1], lowess=True, scatter=False, color='r')
+    plt.ylim(0, gmaar[:,1].max())
+    plt.xlim(1, gmaar[:,0].max())
+    plt.xlabel('Mean expression')
+    plt.ylabel('Standard deviation')
+    plt.savefig('norm_var.png')
+    plt.close()
+    df=pd.DataFrame(aar)
+    sns.boxplot(df[df>1.5])
+    plt.xlabel('Sample', fontsize=12)
+    plt.ylabel('Expresion', fontsize=12)
+    #a.set(xlabel='Sample')
+    plt.savefig('norm_box.png')
+    print('Figures were generated and saved as norm_var.png. and norm')
+    
+def MA_plot(samp1, samp2, name):
+    ''' Uses dataframe or array and makes a plot of value difference vs
+    mean expression
+    name to name a file to save
+    '''
+    smean=np.mean([samp1.values, samp2.values], axis=0)/2
+    sdif=np.subtract(samp1.values, samp2.values)
+    plt.scatter(smean, sdif, alpha=0.4)
+    #plt.ylim()
+    plt.xlim(smean.min())
+    plt.xlabel('Mean expression')
+    plt.ylabel('Difference' )
+    name='MA_plot'+name+'.png'
+    plt.savefig(name)
+    
 
 def hist_show(sample, df):
 #use as a storage for pandas histogram mechanics
