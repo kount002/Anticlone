@@ -28,6 +28,8 @@ def norm_varr(df, method='tc'):
     'max': uses max value to normalize
     'upper': uses upper quartile normalization
     Does not consider samples with 'NOS' in name when removes low count genes from analysis
+    Can change filtration of low experssed genes, use lines at the end     
+    
     
     #may need to insert NaN back in place of 0. See what are your needs will be
     #log transfom in the last expression    
@@ -38,10 +40,12 @@ def norm_varr(df, method='tc'):
     lcsnos=[x for x in lcs if not x.upper().find('NOS')>=0] #exclude NOS samples (for reduction)
     #repls=[x for x in range(10)]  #filter out counts that <10. Do it here to add more weight to highly expressed genes
     #df.replace(repls, 10, inplace=True) #filter out counts that <10
-    #df=df.loc[(df[lcs]>0).all(axis=1),:]
-    df.fillna(0, inplace=True)
+    #print(df.shape)    
+    df.fillna(0, inplace=True)    
+    df=df.loc[(df[lcs]>0).any(axis=1),:] #remove all 0s
+    df.is_copy=False #turns off copy change warnin
     aar=df[lcs].values
-    aar[aar<2]=0
+    #aar[aar<2]=0
     if method=='med': #DEPRECIATED, use upper50 instead
         print('Using median normalization.')
         aarm=np.ma.masked_array(aar, mask=aar<=0) #mask 0 counts
@@ -67,7 +71,7 @@ def norm_varr(df, method='tc'):
         aar=aar.astype(np.float) ##check performance Delete?
         aar[aar==0]=np.nan ##check performance and delete
         supper=np.nanpercentile(aar, perc, axis=0) #check, change nan
-        print(supper, perc)
+        print('Quartiles:', perc, supper)
         if 0 in supper:
             print('Encountered 0 value as percentile, use higher value for percentile')
         amp=np.exp(np.mean(np.log(supper))) #geometric mean centers on most frequent
@@ -91,17 +95,19 @@ def norm_varr(df, method='tc'):
         pass #for none normalization
 
     df[lcs]=pd.DataFrame(aar, index=df.index)
+    df=df.loc[(df[lcsnos]>=10).any(axis=1),:] #may adjust to vary filter stringency
     df[df<10]= 10 #filter out counts that <10
-    df.replace(0, np.nan, inplace=True) #replaces all zeros for NaN #doesn't make sence anymore
+    df.replace(0, np.nan, inplace=True) #replaces all zeros for NaN #doesn't make sence anymore no need    
     df[lcs]=np.log10(df[lcs]) #log-transfrom data
     #df=df.loc[(df[lcs]>1).any(axis=1),:]
-    df=df.loc[(df[lcsnos]>1).any(axis=1),:] #may adjust value for a filter
+    #df=df.loc[(df[lcsnos]>1.0).any(axis=1),:] #may adjust value for a filter
+    df=df.loc[(np.mean(df[lcsnos], axis=1)>1.1),:] #alternative filter on mean across all samples
     return(df)
 
 def anal_prep(df):
-    #prepares the dataframe for expression analysis, log transform it
-    #changes all values <10 to 10
-    #removes clones with all log(10)
+    '''prepares the dataframe for expression analysis, log transform it
+    changes all values <10 to 10
+    removes clones with all log(10) '''
     lc=list(df.columns)
     lcs=[x for x in lc if x!='Annotation']
     dfx=df.fillna(0)
@@ -136,7 +142,7 @@ def norm_plot(df):
     
     #sns.set()    
     plt.scatter(gmaar[:,0], gmaar[:,1], alpha=0.4)
-    sns.regplot(gmaar[:,0], gmaar[:,1], lowess=True, scatter=False, color='r')
+    sns.regplot(gmaar[:,0], gmaar[:,1], lowess=True, scatter=False, color='r')   
     plt.ylim(0, gmaar[:,1].max())
     plt.xlim(1, gmaar[:,0].max())
     plt.xlabel('Mean expression')
@@ -149,6 +155,7 @@ def norm_plot(df):
     plt.ylabel('Expresion', fontsize=12)
     #a.set(xlabel='Sample')
     plt.savefig('norm_box.png')
+    plt.close()
     print('Figures were generated and saved as norm_var.png. and norm')
     
 def MA_plot(samp1, samp2, name):
@@ -156,7 +163,7 @@ def MA_plot(samp1, samp2, name):
     mean expression
     name to name a file to save
     '''
-    smean=np.mean([samp1.values, samp2.values], axis=0)/2
+    smean=np.mean([samp1.values, samp2.values], axis=0)
     sdif=np.subtract(samp1.values, samp2.values)
     plt.scatter(smean, sdif, alpha=0.4)
     #plt.ylim()

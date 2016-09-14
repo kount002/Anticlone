@@ -9,7 +9,8 @@ and returns clones that are significantly different
 ################### Params ###############
 inputs='hts.pkl' #path
 save='stat_out_master_HN.csv' #path
-method='upper90' #normalalizaiton method (upper, tc, med, max)
+fname='p_value_hist.png' # path to figure
+method='upper80' #normalalizaiton method (upper, tc, med, max)
 #check list of analyses?
 kruskal=0 #if set to 1 will use non-parametric anova
 groups={
@@ -83,13 +84,14 @@ def main():
     Flist=[]
     plist=[]
     for i in df.itertuples():
-        args=get_values(i[1:], groupn)
+        args=get_values(i[1:], groupn)        
         if not kruskal:
             F,p=stats.f_oneway(*args) #parametric Anova
         else:
             F,p=np.nan, np.nan
             try: F,p=stats.mstats.kruskalwallis(*args) #non-parametric
             except: pass
+        
         Flist.append(F)
         plist.append(p)    
         
@@ -98,6 +100,9 @@ def main():
     df=df.join(ds)
     #extract only significat genes
     dfsig=df[df['p_value']<0.05].sort_values('p_value')[df['p_value']<0.05]
+    fig=df.iloc[:,-1].hist(bins=40)
+    fig=fig.get_figure()
+    fig.savefig(fname)
     
     dfsig.to_csv(save)
 
