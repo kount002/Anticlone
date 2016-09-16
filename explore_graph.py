@@ -42,8 +42,8 @@ def norm_varr(df, method='tc'):
     #df.replace(repls, 10, inplace=True) #filter out counts that <10
     #print(df.shape)    
     df.fillna(0, inplace=True)    
-    df=df.loc[(df[lcs]>0).any(axis=1),:] #remove all 0s
-    df.is_copy=False #turns off copy change warnin
+    df=df.loc[(df[lcs]>0).any(axis=1),:] #remove all 0s or adjust low counts
+    df.is_copy=False #turns off copy change warnin    
     aar=df[lcs].values
     #aar[aar<2]=0
     if method=='med': #DEPRECIATED, use upper50 instead
@@ -95,13 +95,13 @@ def norm_varr(df, method='tc'):
         pass #for none normalization
 
     df[lcs]=pd.DataFrame(aar, index=df.index)
-    df=df.loc[(df[lcsnos]>=10).any(axis=1),:] #may adjust to vary filter stringency
+    df=df.loc[(df[lcsnos]>=10).any(axis=1),:] #may adjust to vary filter stringency   
     df[df<10]= 10 #filter out counts that <10
     df.replace(0, np.nan, inplace=True) #replaces all zeros for NaN #doesn't make sence anymore no need    
     df[lcs]=np.log10(df[lcs]) #log-transfrom data
     #df=df.loc[(df[lcs]>1).any(axis=1),:]
     #df=df.loc[(df[lcsnos]>1.0).any(axis=1),:] #may adjust value for a filter
-    df=df.loc[(np.mean(df[lcsnos], axis=1)>1.1),:] #alternative filter on mean across all samples
+    df=df.loc[(np.mean(df[lcsnos], axis=1)>1.1),:] #alternative filter on mean across all samples    
     return(df)
 
 def anal_prep(df):

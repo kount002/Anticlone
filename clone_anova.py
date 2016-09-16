@@ -13,6 +13,7 @@ fname='p_value_hist.png' # path to figure
 method='upper80' #normalalizaiton method (upper, tc, med, max)
 #check list of analyses?
 kruskal=0 #if set to 1 will use non-parametric anova
+welch=0 #(use with kruskal=0); if set to 1 will use Welch if '0' will ignore
 groups={
     'gr1':['K20120','K20320','K20420','K20520','K20620'],
     'gr2':['K10120','K10220','K10320','K10420','K10820']
@@ -84,9 +85,12 @@ def main():
     Flist=[]
     plist=[]
     for i in df.itertuples():
-        args=get_values(i[1:], groupn)        
+        args=get_values(i[1:], groupn)
         if not kruskal:
-            F,p=stats.f_oneway(*args) #parametric Anova
+            if welch:
+                F,p=stats.ttest_ind(args[0], args[1], equal_var=False)
+            else:
+                F,p=stats.f_oneway(*args) #parametric Anova            
         else:
             F,p=np.nan, np.nan
             try: F,p=stats.mstats.kruskalwallis(*args) #non-parametric
