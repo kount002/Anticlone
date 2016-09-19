@@ -25,7 +25,7 @@ inputs={
     '../phm_diversity/custom_prime/560_561_570LR.pkl':
     [],
     '../miphage/clone_count/clone_count_df.pkl':
-    ['G20RUT', 'E20201'] ,
+    ['G20RUT', 'E20201', 'H20NOS'] ,
     '../tri_stage/clone_count/clone_count_df.pkl':
     ['20120','AbMix20', 'NOS20']   
     

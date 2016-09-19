@@ -11,7 +11,7 @@ inputs='master.pkl' #path
 save='stat_out_master.csv' #path
 #check list of analyses?
 kruskal=0 #if set to 1 will use non-parametric anova
-method='med' #normalization: 'med' for median, 'tc' for total count
+method='tc' #normalization: 'med' for median, 'tc' for total count
 groups={
     'gr1':['K20120','K20320','K20420','K20520','K20620'],
     'gr2':['K10820','K10920','K11020','K11120','K11220'],
@@ -73,7 +73,7 @@ def main():
             
     #load library
     df=open_lib(inputs)  #load library
-    df=exg.norm_varr(df, 'med') #normalize and log transform
+    df=exg.norm_varr(df, method) #normalize and log transform
     df.fillna(0, inplace=True)
     
     #convert groups ID to indeces

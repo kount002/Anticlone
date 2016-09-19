@@ -8,21 +8,33 @@ takes log-transfromed data, so works with fold increase in expression
 
 """
 #################### Param ######################
-inputs='hts.pkl' #path
-save='fold_out_master.csv' #path
-method='med' #choose normalization method between 'tc' and 'med'
+inputs='master.pkl' #path to the dataframe
+save='fold_out_master.csv' #path result file
+savedf='subtract_master.pkl' #path to dataframe that has been reduced
+
+method='tc' #choose normalization method between 'tc' and 'med'
 #negative grOUPS to subtract
 groups={
-    'gr1':['KNOS120','KNOS220','KNOS20'],
-    'gr2':['KRut120','KRut220'],
-    'gr3':['K10120','K10220','K10320','K10420','K10520']
+    'gr1':['KNOS120','KNOS220','KNOS20', 'H20NOS', 'NOS20' ],
+    'gr2':['KRut120','KRut220', 'G20RUT'],
+    'gr3':['AbMix20', 'KAbMix20'],
+    'gr4':['Regress', 'Summed', 'A16000'],
+    'gr5':['K10120','K10220','K10320','K10420','K10520']
     
         }
+#positive groups to focus:
+#focusgr={
+#    'fgr1':[],
+#    'fgr2':[],
+#    'fgr3':[]
+#        }
 
-#'gr3':['A16000','Regress']
+
+
 
 #################### Imports ####################
-import sys 
+import sys
+import pickle 
 import pandas as pd
 import numpy as np
 import clone_anova as csa
@@ -54,14 +66,15 @@ def sub_list(groups):
 
 df=csa.open_lib(inputs) #open lib
 df=exg.norm_varr(df, method)    #normalize and log transform
-df.fillna(0, inplace=True)
+#df.fillna(0, inplace=True)
 
 dft=subtract_vals(df, groups) #determine subtract value
 
 sublist=sub_list(groups) #convert dic in to list
 sumlist=[x for x in df.columns if x not in sublist] #make list of samples to treat
+sumlist=[x for x in sumlist if x!='Annotation']
 dfs=pd.DataFrame(index=df.index)
-for col in df.columns: #?? change to sumlist/df.columns for comprehensive
+for col in sumlist: #?? change to sumlist/df.columns for comprehensive
     name=col+'_fd'
     dfs[name]=df[col]-dft
 foldlist=[x+'_fd' for x in sumlist]
@@ -72,8 +85,15 @@ try:
     dfs.join(df['Annotation'], how='left')
 except:
     pass
+#stop here if want fold increase over background table, move to save
 
+#Use dfs table as a mask to cull df
+dfsidx=dfs.index
+dfs=df.loc[dfsidx]
+
+####
 dfs.to_csv(save)
+with open(savedf, 'wb') as f:
+    pickle.dump(dfs, f)
 print('Scipt completed, see "{0}" for results.'.format(save)) 
-
 

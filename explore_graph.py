@@ -34,8 +34,8 @@ def norm_varr(df, method='tc'):
     lcs=[x for x in lc if x!='Annotation']
 
     repls=[x for x in range(10)]  #filter out counts that <10. Do it here to add more weight to highly expressed genes in selected samples. NOS samples have low level of low expression values
-    df.replace(repls, 10, inplace=True) #filter out counts that <10, make them 10
-    df.fillna(10, inplace=True)         #fill NaNs with 1   
+    df.replace(repls, 0, inplace=True) #filter out counts that <10, make them 10
+    df.fillna(0, inplace=True)         #fill NaNs with 1   
     
     aar=df[lcs].values
     if method=='med':
@@ -51,11 +51,12 @@ def norm_varr(df, method='tc'):
         aar=(aar*amp)/ssums
 
     df[lcs]=pd.DataFrame(aar, index=df.index)
-    df.replace(0, np.nan, inplace=True) #replaces all zeros for NaN before log transform
+    df.replace(repls, 10, inplace=True) #replaces all zeros with 10 #for NaN before log transform
     df[lcs]=np.log10(df[lcs]) #log-transfrom data
     return(df)
 
 def anal_prep(df):
+S20','KNOS120','KNOS220
     #prepares the dataframe for expression analysis, log transform it
     #changes all values <10 to 10
     #removes clones with all log(10)
