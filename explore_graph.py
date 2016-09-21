@@ -37,13 +37,6 @@ def norm_varr(df, method='tc'):
 
     lc=list(df.columns)
     lcs=[x for x in lc if x!='Annotation']
-<<<<<<< .merge_file_jjirHF
-
-    repls=[x for x in range(10)]  #filter out counts that <10. Do it here to add more weight to highly expressed genes in selected samples. NOS samples have low level of low expression values
-    df.replace(repls, 0, inplace=True) #filter out counts that <10, make them 10
-    df.fillna(0, inplace=True)         #fill NaNs with 1   
-    
-=======
     lcsnos=[x for x in lcs if not x.upper().find('NOS')>=0] #exclude NOS samples (for reduction)
     #repls=[x for x in range(10)]  #filter out counts that <10. Do it here to add more weight to highly expressed genes
     #df.replace(repls, 10, inplace=True) #filter out counts that <10
@@ -51,7 +44,6 @@ def norm_varr(df, method='tc'):
     df.fillna(0, inplace=True)    
     df=df.loc[(df[lcs]>0).any(axis=1),:] #remove all 0s or adjust low counts
     df.is_copy=False #turns off copy change warnin    
->>>>>>> .merge_file_BY5xZ1
     aar=df[lcs].values
     #aar[aar<2]=0
     if method=='med': #DEPRECIATED, use upper50 instead
@@ -103,13 +95,9 @@ def norm_varr(df, method='tc'):
         pass #for none normalization
 
     df[lcs]=pd.DataFrame(aar, index=df.index)
-<<<<<<< .merge_file_jjirHF
-    df.replace(repls, 10, inplace=True) #replaces all zeros with 10 #for NaN before log transform
-=======
     df=df.loc[(df[lcsnos]>=10).any(axis=1),:] #may adjust to vary filter stringency   
     df[df<10]= 10 #filter out counts that <10
     df.replace(0, np.nan, inplace=True) #replaces all zeros for NaN #doesn't make sence anymore no need    
->>>>>>> .merge_file_BY5xZ1
     df[lcs]=np.log10(df[lcs]) #log-transfrom data
     #df=df.loc[(df[lcs]>1).any(axis=1),:]
     #df=df.loc[(df[lcsnos]>1.0).any(axis=1),:] #may adjust value for a filter
@@ -117,16 +105,9 @@ def norm_varr(df, method='tc'):
     return(df)
 
 def anal_prep(df):
-<<<<<<< .merge_file_jjirHF
-S20','KNOS120','KNOS220
-    #prepares the dataframe for expression analysis, log transform it
-    #changes all values <10 to 10
-    #removes clones with all log(10)
-=======
     '''prepares the dataframe for expression analysis, log transform it
     changes all values <10 to 10
     removes clones with all log(10) '''
->>>>>>> .merge_file_BY5xZ1
     lc=list(df.columns)
     lcs=[x for x in lc if x!='Annotation']
     dfx=df.fillna(0)

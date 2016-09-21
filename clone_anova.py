@@ -13,11 +13,7 @@ fname='p_value_hist.png' # path to figure
 method='upper80' #normalalizaiton method (upper, tc, med, max)
 #check list of analyses?
 kruskal=0 #if set to 1 will use non-parametric anova
-<<<<<<< .merge_file_CCDkSI
-method='tc' #normalization: 'med' for median, 'tc' for total count
-=======
 welch=0 #(use with kruskal=0); if set to 1 will use Welch if '0' will ignore
->>>>>>> .merge_file_yklgs2
 groups={
     'gr1':['K20120','K20320','K20420','K20520','K20620'],
     'gr2':['K10120','K10220','K10320','K10420','K10820']
