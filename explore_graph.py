@@ -10,6 +10,15 @@ import seaborn as sns
 #matplotlib.use('Agg')  #need this to turn off figure display
 import matplotlib.pyplot as plt
 
+def open_lib(path): #loads pickled df into memory
+    try: 
+        with open(path, 'rb') as f:
+            lib=pickle.load(f)
+            print('Read', path)
+        return(lib)
+    except:
+        print('Cannot open', path, '\n check path')
+        sys.exit(2)
 
 def norm_df(df, lc): # do not use this function too slow
 # clone_count.py outputs raw clone counts. Function normalizes count as: count*ave(sum of sums)/specific sums
@@ -162,6 +171,7 @@ def MA_plot(samp1, samp2, name):
     ''' Uses dataframe or array and makes a plot of value difference vs
     mean expression
     name to name a file to save
+    eg: df['columnA']
     '''
     smean=np.mean([samp1.values, samp2.values], axis=0)
     sdif=np.subtract(samp1.values, samp2.values)
@@ -173,7 +183,28 @@ def MA_plot(samp1, samp2, name):
     name='MA_plot'+name+'.png'
     plt.savefig(name)
     
-
+def expression_plot(samp1, samp2, name):
+    '''Uses dataframe or array and makes plot of expression values for two samples
+        vs mean expression
+    '''
+    smean=np.mean([samp1.values, samp2.values], axis=0)
+    frames=[x.reshape(-1,1) for x in [samp1, samp2, smean]]
+    arr=np.concatenate(frames, axis=1)
+    arr=arr[arr[:,2].argsort()]
+    print(samp1.name)
+    plt.plot(arr[:,0], alpha=0.4, markersize=3, marker='o', 
+             color='b', linestyle='none', label=samp1.name)
+    plt.plot(arr[:,1], alpha=0.4, markersize=3, marker='o', 
+             color='r', linestyle='none', label=samp2.name)
+    plt.legend(loc='upper left')
+    #plt.ylim()
+    ##plt.xlim(smean.min())
+    plt.xlabel('Genes')
+    plt.ylabel('Expression' )
+    name='Expression_plot'+name+'.png'
+    plt.savefig(name)
+    
+    
 def hist_show(sample, df):
 #use as a storage for pandas histogram mechanics
     fi=df[sample][df[sample>0.0]].hist(bins=100, range=(0, 1000), alpha=0.4)

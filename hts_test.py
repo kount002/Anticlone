@@ -26,14 +26,12 @@ lc=df.columns
 lc=[x.strip('sample_') for x in lc]
 df.columns=lc
 
-df=exg.norm_varr(df, 'upper70') #comment if run anova to avoid double normalization
+#df=exg.norm_varr(df, 'RLE80') #comment if run anova to avoid double normalization
 exg.norm_plot(df)
-exg.MA_plot(df.iloc[:,18], df.iloc[:,16], 'first')
+exg.expression_plot(df.iloc[:,19], df.iloc[:,12], 'second')
+#exg.MA_plot(df.iloc[:,18], df.iloc[:,16], 'first')
 
 with open('hts.pkl', 'wb') as f:
     pickle.dump(df, f)
     
 #a=dfx.loc[(dfx>1.5).any(axis=1),:] #extract rows with values all>1.5
-    
-
-    
