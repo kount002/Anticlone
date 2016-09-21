@@ -35,3 +35,6 @@ with open('hts.pkl', 'wb') as f:
     pickle.dump(df, f)
     
 #a=dfx.loc[(dfx>1.5).any(axis=1),:] #extract rows with values all>1.5
+    
+
+    

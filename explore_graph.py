@@ -204,7 +204,6 @@ def expression_plot(samp1, samp2, name):
     name='Expression_plot'+name+'.png'
     plt.savefig(name)
     
-    
 def hist_show(sample, df):
 #use as a storage for pandas histogram mechanics
     fi=df[sample][df[sample>0.0]].hist(bins=100, range=(0, 1000), alpha=0.4)
