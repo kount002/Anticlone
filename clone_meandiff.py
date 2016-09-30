@@ -12,11 +12,11 @@ Sort items by max expression or max difference between
 
 """
 ################### Params ###############
-inputs='hts.pkl' #path
+inputs='master.pkl' #path
 output='diff_out_master.csv' #path
 #fname='p_value_hist.png' # path to figure
 method='RLE90' #normalalizaiton method (upper80, tc, RLE80, med, max)
-foldover=2 #fold over max(control)
+foldover=1 #fold over max(control)
 
 groups={
     'NMO_interest':['K20120','K20320','K20420','K20520','K20620'],
@@ -64,6 +64,12 @@ dfm=pd.DataFrame()
 for k, i in groups.items():
     nname='mean_'+k
     dfm[nname]=df[i].mean(axis=1)
+    dfm[i]=df[i]
+
+dfm['Annotation']=df['Annotation']
+cols=dfm.columns #put Annotation in front of all columns
+cols=cols[-1:]+cols[:-1]
+dfm=dfm[cols]
 
 contr=['mean_'+x for x in groups.keys() if x.find('control')>=0]
 dfm['max_control']=dfm[contr].max(axis=1)
@@ -71,29 +77,31 @@ dfm['max_control']=dfm[contr].max(axis=1)
 
 #filter out all that less than max(controls)
 interkeys=[x for x in dfm.columns if x.find('interest')>=0]
-print('There are genes before filtration:', dfm.shape[0])
-dfmb=dfm.loc[dfm[interkeys[0]]>1*dfm['max_control']]
-print('After filtration through negative controls there are:', dfmb.shape[0])
+dfmb=dfm.loc[dfm[interkeys[0]]>foldover*dfm['max_control']]
     
+#clean up annotation
+print(dfmb['Annotation'].head())
+dfmb=exg.annot_clean(dfmb)
+print(dfmb['Annotation'].head())
 
 #plots to check for normalization
 #exg.MA_plot(dfm['mean_NMO_interest'],dfm['mean_NOS_control'], 'mafile')
 #exg.expression_plot(dfm['mean_NMO_interest'],dfm['max_control'], 'exfile')
-exg.expression_plot(dfm['mean_NMO_interest'],dfm['max_control'], 'exfile')
-#exg.norm_plot(df)
+exg.norm_plot(df)
 
 #select what is over the Healthy control
 comparekeys=[x for x in dfm.columns if x.find('compare')>=0]
-pass #build two compare code
+
+#build two compare code
 for i in comparekeys:
     nname='diff_'+i
-    dfmb.is_copy=False
+    #dfmb.is_copy=False
     dfmb[nname]=dfmb[interkeys[0]]-dfmb[i]
-
 #dfmb['diff_N']=dfmb[interkeys[0]]-dfmb[comparekeys[0]]
 comparename=[x for x in dfmb.columns if x.find('diff')>=0]
 dfmb.sort_values(comparename[0], axis=0, ascending=False, inplace=True)
-print(dfmb.head())
+print(dfmb.head(10))
+dfmb.to_csv(output)
 
 #testing
 #a=dfm.loc[dfm['mean_NMO_interest']>dfm['mean_RUT_control']]

@@ -5,9 +5,9 @@ import sys
 import pandas as pd
 import numpy as np
 import pickle
+import matplotlib
+matplotlib.use('Agg')  #need this to turn off figure display
 import seaborn as sns
-#import matplotlib
-#matplotlib.use('Agg')  #need this to turn off figure display
 import matplotlib.pyplot as plt
 
 def open_lib(path): #loads pickled df into memory
@@ -20,12 +20,20 @@ def open_lib(path): #loads pickled df into memory
         print('Cannot open', path, '\n check path')
         sys.exit(2)
 
-def norm_df(df, lc): # do not use this function too slow
-# clone_count.py outputs raw clone counts. Function normalizes count as: count*ave(sum of sums)/specific sums
-    lcs=[x for x in lc if x!='Annotation']
-    for col in lcs:
-        print('Processing...', col )
-        df[col]=df[col].apply(lambda x: x/df[col].sum()*df[lcs].sum().mean())
+def annot_clean (df):
+    '''cleans up annotation column by removing repeated items '''
+    def transf(annt): 
+        annt=str(annt)
+        for i in ['(', ')', '\'', '\"', ' ']:
+            annt=annt.replace(i, '')
+        annt=annt.split(',')
+        annt=set(annt)
+        annt=list(annt)
+        annt.sort()
+        annt=', '.join(annt[1:])
+        return(annt)
+   
+    df['Annotation']=df['Annotation'].apply(transf)
     return(df)
     
 def norm_varr(df, method='tc'):
@@ -105,7 +113,7 @@ def norm_varr(df, method='tc'):
 
     df[lcs]=pd.DataFrame(aar, index=df.index)
     df=df.loc[(df[lcsnos]>=10).any(axis=1),:] #may adjust to vary filter stringency   
-    df[df<10]= 10 #filter out counts that <10
+    df[lcs]=df[lcs].where(df[lcs]>=10, other=10)
     df.replace(0, np.nan, inplace=True) #replaces all zeros for NaN #doesn't make sence anymore no need    
     df[lcs]=np.log10(df[lcs]) #log-transfrom data
     #df=df.loc[(df[lcs]>1).any(axis=1),:]
@@ -132,7 +140,7 @@ def norm_plot(df):
     ''' plot variance of all samples vs mean expression
         helps to determine which normalization works best for a set 
     '''
-    
+
     lc=list(df.columns)
     lcs=[x for x in lc if x!='Annotation']
     aar=df[lcs].values
@@ -149,13 +157,14 @@ def norm_plot(df):
     gmaar=np.append(gmeans, varaar, axis=1)
     #gmaar=gmaar[gmaar[:,0].argsort()]
     
-    #sns.set()    
+    #sns.set()
+    fig=plt.figure(figsize=(12,7))    
     plt.scatter(gmaar[:,0], gmaar[:,1], alpha=0.4)
     sns.regplot(gmaar[:,0], gmaar[:,1], lowess=True, scatter=False, color='r')   
     plt.ylim(0, gmaar[:,1].max())
     plt.xlim(1, gmaar[:,0].max())
-    plt.xlabel('Mean expression')
-    plt.ylabel('Standard deviation')
+    plt.xlabel('Mean expression', fontsize=15)
+    plt.ylabel('Standard deviation',fontsize=15)
     plt.savefig('norm_var.png')
     plt.close()
     df=pd.DataFrame(aar)
