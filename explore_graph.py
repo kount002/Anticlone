@@ -29,14 +29,16 @@ def annot_clean (df):
         annt=annt.split(',')
         annt=set(annt)
         annt=list(annt)
+        annt=[x for x in annt if x!=''] 
         annt.sort()
-        annt=', '.join(annt[1:])
+        annt=''.join(annt[:1]) # remove if want to keep set of hits instead of single value
+        #annt=', '.join(annt[0:]) #uncomment if wat to keep set of hits insted of single value 
         return(annt)
    
     df['Annotation']=df['Annotation'].apply(transf)
     return(df)
     
-def norm_varr(df, method='tc'):
+def norm_varr(df, method='tc', tresh=10, meanfilter=1.3):
     ''' clone_count.py outputs raw clone counts. 
     Takes values for normalization methods: 'tc' - total count or 'med' - median
     'tc': (default) Function normalizes count as: count*ave(sum of sums)/specific sums
@@ -55,8 +57,8 @@ def norm_varr(df, method='tc'):
     lc=list(df.columns)
     lcs=[x for x in lc if x!='Annotation']
     lcsnos=[x for x in lcs if not x.upper().find('NOS')>=0] #exclude NOS samples (for reduction)
-    #repls=[x for x in range(10)]  #filter out counts that <10. Do it here to add more weight to highly expressed genes
-    #df.replace(repls, 10, inplace=True) #filter out counts that <10
+    #repls=[x for x in range(tresh)]  #filter out counts that <10. Do it here to add more weight to highly expressed genes
+    #df.replace(repls, tresh, inplace=True) #filter out counts that <10
     #print(df.shape)    
     df.fillna(0, inplace=True)    
     df=df.loc[(df[lcs]>0).any(axis=1),:] #remove all 0s or adjust low counts
@@ -112,13 +114,14 @@ def norm_varr(df, method='tc'):
         pass #for none normalization
 
     df[lcs]=pd.DataFrame(aar, index=df.index)
-    df=df.loc[(df[lcsnos]>=10).any(axis=1),:] #may adjust to vary filter stringency   
-    df[lcs]=df[lcs].where(df[lcs]>=10, other=10)
+    df=df.loc[(df[lcsnos]>=tresh).any(axis=1),:] #may adjust to vary filter stringency   
+    df[lcs]=df[lcs].where(df[lcs]>=tresh, other=tresh)
     df.replace(0, np.nan, inplace=True) #replaces all zeros for NaN #doesn't make sence anymore no need    
     df[lcs]=np.log10(df[lcs]) #log-transfrom data
     #df=df.loc[(df[lcs]>1).any(axis=1),:]
     #df=df.loc[(df[lcsnos]>1.0).any(axis=1),:] #may adjust value for a filter
-    df=df.loc[(np.mean(df[lcsnos], axis=1)>1.1),:] #alternative filter on mean across all samples    
+    treshlog=np.log10(tresh*meanfilter) #placeholder for alternative filter on means
+    df=df.loc[(np.mean(df[lcsnos], axis=1)>treshlog),:] #alternative filter on mean across all samples    
     return(df)
 
 def anal_prep(df):
@@ -143,28 +146,27 @@ def norm_plot(df):
 
     lc=list(df.columns)
     lcs=[x for x in lc if x!='Annotation']
+    #lcsnos=[x for x in lcs if not x.upper().find('NOS')>=0]
     aar=df[lcs].values
     #gmeans=np.exp(np.mean(np.log(aar), axis=1))
     gmeans=np.mean(aar, axis=1)
     gmeans=gmeans.reshape(-1,1)
     #rgmaar=aar/gmeans
-    varaar=np.std(aar, axis=1)
-    
+    varaar=np.var(aar, axis=1) #change between variance (var) and deviation (std) here
     #mvar=np.mean(varaar, axis=1)
     #mvar=mvar.reshape(-1,1)
     #varaar=varaar/mvar
     varaar=varaar.reshape(-1,1)
     gmaar=np.append(gmeans, varaar, axis=1)
     #gmaar=gmaar[gmaar[:,0].argsort()]
-    
     #sns.set()
     fig=plt.figure(figsize=(12,7))    
     plt.scatter(gmaar[:,0], gmaar[:,1], alpha=0.4)
     sns.regplot(gmaar[:,0], gmaar[:,1], lowess=True, scatter=False, color='r')   
-    plt.ylim(0, gmaar[:,1].max())
-    plt.xlim(1, gmaar[:,0].max())
+    plt.ylim(gmaar[:,1].min(), gmaar[:,1].max())
+    plt.xlim(gmaar[:,0].min(), gmaar[:,0].max())
     plt.xlabel('Mean expression', fontsize=15)
-    plt.ylabel('Standard deviation',fontsize=15)
+    plt.ylabel('Variance',fontsize=15)
     plt.savefig('norm_var.png')
     plt.close()
     df=pd.DataFrame(aar)
@@ -191,6 +193,7 @@ def MA_plot(samp1, samp2, name):
     plt.ylabel('Difference' )
     name='MA_plot'+name+'.png'
     plt.savefig(name)
+    plt.close()
     
 def expression_plot(samp1, samp2, name):
     '''Uses dataframe or array and makes plot of expression values for two samples
@@ -212,6 +215,7 @@ def expression_plot(samp1, samp2, name):
     plt.ylabel('Expression' )
     name='Expression_plot'+name+'.png'
     plt.savefig(name)
+    plt.close()
     
     
 def hist_show(sample, df):
