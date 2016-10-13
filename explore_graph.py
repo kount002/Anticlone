@@ -38,6 +38,17 @@ def annot_clean (df):
     df['Annotation']=df['Annotation'].apply(transf)
     return(df)
     
+def single_end(df):
+        '''colapses bins based on start and end position to 
+        only start position bins
+        works with fragment library only'''
+    pass
+    loc=df.index
+    df['Chr'], df['Pos1'], df['Pos2']=zip(*loc)
+    del(df['Pos2'])
+    df=df.groupby(['Chr', 'Pos1']).sum()
+    return(df)
+    
 def norm_varr(df, method='tc', tresh=10, meanfilter=1.3):
     ''' clone_count.py outputs raw clone counts. 
     Takes values for normalization methods: 'tc' - total count or 'med' - median

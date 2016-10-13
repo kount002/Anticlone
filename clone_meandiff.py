@@ -9,16 +9,16 @@ max(mean(control1),mean(control2))
 Sort items by max expression or max difference between
 2 x mean(interest)-(mean(gr1)+mean(gr2))
 
-
+Uses graphs that are sample specific, 
 """
 ################### Params ###############
 inputs='master.pkl' #path
 output='diff_out_master.csv' #path
 #fname='p_value_hist.png' # path to figure
 
-method='upper70' #normalalizaiton method (upper80, tc, RLE80, med, max)
+method='upper85' #normalalizaiton method (upper80, tc, RLE80, med, max)
 tresh=1 #normalization based on minimum absolute count (provide minimum count)
-meanfilter=1.0 #normalization based on mean expression (folds of the tresh) (removes genes wt mean expression less then value)
+meanfilter=1.3 #normalization based on mean expression (folds of the tresh) (removes genes wt mean expression less then value)
 
 
 foldover=1 #fold over max(control)
@@ -82,6 +82,8 @@ dfm['max_control']=dfm[contr].max(axis=1)
 #filter out all that less than max(controls)
 interkeys=[x for x in dfm.columns if x.find('interest')>=0]
 dfmb=dfm.loc[dfm[interkeys[0]]>foldover*dfm['max_control']]
+
+dfmb=dfm # does not do control subtraction, only compares to Healthy
     
 #filter out all that less than max(controls)
 #clean up annotation
@@ -93,8 +95,8 @@ if len(dfm)>10000:
 else:
     dfms=dfm
 
-exg.MA_plot(dfms['mean_NMO_interest'],dfms['mean_NOS_control'], 'mafile')
-exg.expression_plot(dfms['mean_NMO_interest'],dfms['max_control'], 'exfile')
+exg.MA_plot(dfms[interkeys[0]],dfms['mean_NOS_control'], 'mafile')
+exg.expression_plot(dfms[interkeys[0]],dfms['max_control'], 'exfile')
 
 if len(df)>10000:
     dfs=df.sample(10000)
