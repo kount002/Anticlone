@@ -61,7 +61,10 @@ samples=[y for x in groups.values() for y in x] #flatten groups dict
 for i in samples:
     if i not in cont:
         print(i, 'Not present in the sample library, check PARAM section')
-        
+
+#asks if the file works with gene list or fragment list and reduces bins to single position for fragment file        
+##if 'gene' not in list(cont):
+##    df=exg.single_end(df)
 df=exg.norm_varr(df, method, tresh, meanfilter)
      
 #create df with means of the groups
@@ -115,7 +118,6 @@ for i in comparekeys:
 #dfmb['diff_N']=dfmb[interkeys[0]]-dfmb[comparekeys[0]]
 comparename=[x for x in dfmb.columns if x.find('diff')>=0]
 dfmb.sort_values(comparename[0], axis=0, ascending=False, inplace=True)
-print(dfmb.head(10))
 dfmb.to_csv(output)
 
 #testing
