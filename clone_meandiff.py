@@ -63,10 +63,25 @@ for i in samples:
         print(i, 'Not present in the sample library, check PARAM section')
 
 #asks if the file works with gene list or fragment list and reduces bins to single position for fragment file        
-##if 'gene' not in list(cont):
-##    df=exg.single_end(df)
+if 'gene' not in list(cont):
+    print('Collapsing fragment bins to single-end bins')
+    df=exg.single_end(df)
+
+    
+##clean up annotation
+df=exg.annot_clean(df)
+
+#remove items with no feature in alingment position
+print('Array shape for all clones', df.shape)
+df=df[~df['Annotation'].str.startswith("__")]
+print('Array shape after unnotated clones removed', df.shape)
+
+#keep only that are named in parameter section
+keeps=samples+['Annotation']
+df=df[keeps]
+#run normalizatiion routine
 df=exg.norm_varr(df, method, tresh, meanfilter)
-     
+
 #create df with means of the groups
 dfm=pd.DataFrame()
 for k, i in groups.items():
@@ -89,8 +104,8 @@ dfmb=dfm.loc[dfm[interkeys[0]]>foldover*dfm['max_control']]
 dfmb=dfm # does not do control subtraction, only compares to Healthy
     
 #filter out all that less than max(controls)
-#clean up annotation
-dfmb=exg.annot_clean(dfmb)
+##clean up annotation
+#dfmb=exg.annot_clean(dfmb)
 
 #plots to check for normalization using unculled list
 if len(dfm)>10000:
