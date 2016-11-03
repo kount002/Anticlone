@@ -6,8 +6,8 @@ Takes bam file as input and counts all unique clones(read pairs) using unique co
 
 As input the program will require -i
 USAGE:
-clone-count.py -i input_bam_file [-n output_file_name_prefix] [-b mask_for_batch_processing]
-Example python3.3 clone-count.py -i Processed_data/EK\*/tophat/accepted_hits.bam
+clone-count.py -i input_bam_file [-n output_file_name_prefix] [-b mask_for_batch_processing] [-f bin size]
+Example python3.3 clone-count.py -i Processed_data/EK\*/tophat/accepted_hits.bam -f 150 -b yes
 Need to escape *
 check is done for the length of path(4), processes as a batch
 Dictionary structure:
@@ -21,7 +21,10 @@ However the sripts runs fine if started from IPython3 environment via 'run clone
 
 
 """
+########### Param #############
+rduce=0 #make 0 if want keep names of the reads for each fragment bin, 1 if want to convert them to counts
 
+###############################
 
 import argparse
 import os
@@ -282,7 +285,8 @@ else:
                                      
     else:
         print('Cannot figure the path', sourcefl) 
-    dic_reduce(mast)
+    if rduce!=0:
+        dic_reduce(mast)
     #save_db(mast) #convert master dict to sqlite db
     save_pickle(mast) #convert master dict to pickle dump
     save_pickle(dic_df(mast))        
