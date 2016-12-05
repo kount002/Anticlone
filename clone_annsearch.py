@@ -10,8 +10,9 @@ based on coordinates the script removes short bins less than 150 and makes a dit
 
 ############ param ##########
 
-indf='fold_out_master.csv' #CSV that lists unannotated fragments
-indic='test_sample/clone_count/clone_count_dic.pkl' #pickle with dictionatry that contains names and not counts, turn off counting function( dic_reduce) in clone_count.py
+indf='diff_out_master.csv' #CSV that lists unannotated fragments
+indic='./clone_count/clone_count_dic.pkl' #pickle with dictionatry that contains names and not counts, turn off counting function( dic_reduce) in clone_count.py
+outfl='outdiff.txt' #file with blast results
 
 fltrshort=200 # set to remove every clone that is shorter 
 toplist=100 # set number of frabment to investigate
@@ -24,7 +25,7 @@ import pandas as pd
 import explore_graph as exg
 import glob
 import pandas as pd
-
+import os
 
 ############# functions ######
 def filter_short(df):
@@ -57,6 +58,7 @@ def blast_seq(seq):
     from Bio.Blast import NCBIWWW
     from Bio.Blast import NCBIXML
 
+    write_seq(seq) # option to write sequence down
     b_result=NCBIWWW.qblast('blastn', 'nt', seq, descriptions=1, hitlist_size=1)
     b_parsed=NCBIXML.parse(b_result)
     item=next(b_parsed)
@@ -65,16 +67,24 @@ def blast_seq(seq):
         print(titl)
         return(titl) 
 
+def write_seq(seq):
+    '''creates a file with the sequences blasted'''
+    with open('blast_seqs.txt', 'a') as se:
+        line=seq+'\n'
+        se.write(line)
 
 
 
-def extractor(nm, sambamloc):
-    '''extracts a sequence read form bam file (sambamloc) using a read name(nm)'''
+def extractor(nm, j, sambamloc):
+    '''extracts a sequence read form bam file (sambamloc), exact file name (j) and  using a read name(nm)'''
     readsam=glob.glob(sambamloc)
     for i in readsam:
         if i.endswith('bam'):
             print('Cannot read bam files yet')
             #open convertion form bam to sam
+        print('Dgs, j value sample file start', j, i)
+        if i.find(j)<0:
+            continue
         #read sam
         print('Looking for sequence in {0} file'.format(i))
         with open(i, 'r') as samfile:
@@ -90,8 +100,19 @@ def extractor(nm, sambamloc):
 
 ############ main ###########
 
+#clean up
+try: 
+    os.remove(outfl)
+except OSError:
+    pass
+
+
 #create a list of coordinates to extract
 df=pd.read_csv(indf, index_col='Unnamed: 0') #open csv with counts 
+df=exg.annot_clean(df)
+print('List contains all entries', len(df))
+df=df[df['Annotation'].str.startswith('__')]
+print('List contains unannotated entries:', len(df))
 df, sloc=filter_short(df)   #filter shorts
 #df=df.iloc[:toplist, :]
 #srch=list(df.index)
@@ -110,10 +131,10 @@ for i in sloc: #takes a coordinate
             namelist=list(names[0])
             #anndict={}
             for n in namelist:
-                titl=extractor(n, sambamloc) # run function to extract sequece 
+                titl=extractor(n, j, sambamloc) # run function to extract sequece 
                 si=str(i)
                 anndict[si]=titl
-                with open('out.txt', 'a') as fil:
+                with open(outfl, 'a') as fil:
                     line=si+','+titl+'\n'
                     fil.write(line)
                 break
@@ -121,6 +142,7 @@ for i in sloc: #takes a coordinate
 
 dfann=pd.DataFrame.from_dict(anndict, orient='index')
 dfann.columns=['Blast_annotation']
+df=pd.read_csv(indf, index_col='Unnamed: 0')
 dfall=df.merge(right=dfann, how='outer', left_index=True, right_index=True)
 outdf='blast_'+indf
 dfall.to_csv(outdf)

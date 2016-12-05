@@ -21,7 +21,7 @@ def open_lib(path): #loads pickled df into memory
         sys.exit(2)
 
 def annot_clean (df):
-    '''cleans up annotation column by removing repeated items '''
+    '''cleans up annotation column by removing repeated items for each row'''
     def transf(annt): 
         annt=str(annt)
         for i in ['(', ')', '\'', '\"', ' ']:

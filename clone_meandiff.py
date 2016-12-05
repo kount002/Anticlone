@@ -73,7 +73,7 @@ df=exg.annot_clean(df)
 
 #remove items with no feature in alingment position
 print('Array shape for all clones', df.shape)
-df=df[df['Annotation'].str.startswith("__")]
+df=df[~df['Annotation'].str.startswith("__")]
 print('Array shape after unnotated clones removed', df.shape)
 
 #keep only that are named in parameter section
