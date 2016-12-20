@@ -22,7 +22,8 @@ However the sripts runs fine if started from IPython3 environment via 'run clone
 
 """
 ########### Param #############
-rduce=0 #make 0 if want keep names of the reads for each fragment bin, 1 if want to convert them to counts
+rduce=1 #make 0 if want keep names of the reads for each fragment bin, 1 if want to convert them to counts
+
 
 ###############################
 

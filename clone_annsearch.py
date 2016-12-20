@@ -10,7 +10,7 @@ based on coordinates the script removes short bins less than 150 and makes a dit
 
 ############ param ##########
 
-indf='diff_out_master.csv' #CSV that lists unannotated fragments
+indf='diff_out_master_frag.csv' #CSV that lists unannotated fragments
 indic='./clone_count/clone_count_dic.pkl' #pickle with dictionatry that contains names and not counts, turn off counting function( dic_reduce) in clone_count.py
 outfl='outdiff.txt' #file with blast results
 
@@ -92,7 +92,7 @@ def extractor(nm, j, sambamloc):
                 liner=line.rstrip().split('\t')
                 if nm==liner[0]:
                     print('Blasting', liner[0], liner[9])
-                    #start blast module, break  out of cycle (test only one read)
+                    #start blast function, break  out of cycle (test only one read)
                     titl=blast_seq(liner[9])
                     return (titl)
 
@@ -126,7 +126,7 @@ for i in sloc: #takes a coordinate
     for j in mast.keys(): #takes a sample
         names=mast[j][i]
         if names:
-            print('Found match in master dictionary:', j, i, names[0])
+            print('Found match in master dictionary:', j, i, list(names[0])[0])
             #extract sequences by names
             namelist=list(names[0])
             #anndict={}
@@ -135,8 +135,11 @@ for i in sloc: #takes a coordinate
                 si=str(i)
                 anndict[si]=titl
                 with open(outfl, 'a') as fil:
-                    line=si+','+titl+'\n'
-                    fil.write(line)
+                    try:
+                        line=si+','+titl+'\n'
+                        fil.write(line)
+                    except:
+                        print('Error: value of titl', titl)
                 break
             break
 
