@@ -39,7 +39,7 @@ def annot_clean (df):
     return(df)
     
 def single_end(df):
-        '''colapses bins based on start and end position to 
+    '''colapses bins based on start and end position to 
         only start position bins
         works with fragment library only'''
     pass
