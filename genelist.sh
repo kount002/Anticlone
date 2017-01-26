@@ -69,6 +69,12 @@ echo "$si" 'adapters are being removed'
 done
 wait
 
+
+PATH=/opt/bowtie2-2.2.3:/opt/tophat-2.0.12.Linux_x86_64:/home/kount002/.local/bin:/home/kount002/scripts:/usr/lib64/qt-3.3/bin:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/opt/Symantec/symantec_antivirus:/opt/bowtie2-2.2.3:/opt/tophat-2.0.12.Linux_x86_64:/home/kount002/.local/bin:/home/kount002/scripts:/home/kount002/binaries:/home/kount002/binaries/Cyton_0.24/bin
+export $PATH
+
+
+
 #check if the processed files are exitst, otherwise exit 2
 ls Processed_data/*/*.fastq.gz &> /dev/null || ( echo "Files with removed adapter not found" && exit 2 )
 echo 'All adapters were removed'
@@ -98,7 +104,6 @@ tophat --read-mismatches 7 --read-gap-length 2 --read-edit-dist 8 -p 4 -r 150 -o
 $file1 $file2 &> Processed_data/"$si"/tophat/"$si"_tophat_stout.log
 )&
 
-echo "$si" "...is being processed by tophat" 
 done
 wait
 

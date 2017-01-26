@@ -12,19 +12,19 @@ Sort items by max expression or max difference between
 Uses graphs that are sample specific, 
 """
 ################### Params ###############
-inputs='master.pkl' #path
-output='diff_out_master.csv' #path
+inputs='recount/recount_df.pkl' #path
+output='diff_out_master_recount.csv' #path
 #fname='p_value_hist.png' # path to figure
 
 method='upper85' #normalalizaiton method (upper80, tc, RLE80, med, max)
 tresh=1 #normalization based on minimum absolute count (provide minimum count)
 meanfilter=1.3 #normalization based on mean expression (folds of the tresh) (removes genes wt mean expression less then value)
 
-
+noannkeep=1 #'1' keeps all entries including ones with no annotation; '0' or else will remove unannotated bins
 foldover=1 #fold over max(control)
 
 groups={
-    'NMO_interest':['K20120','K20320','K20420','K20520','K20620'],
+    'SLE_interest':['K10820','K10920','K11020','K11120','K11220'],
     'Healthy_compare':['K10120','K10220','K10320','K10420','K10520'],
     'NOS_control':['KNOS120','KNOS220','KNOS20'],
     'RUT_control':['KRut120','KRut220','KAbMix20']
@@ -68,15 +68,16 @@ if 'gene' not in list(cont):
     #df=exg.single_end(df)
 
     
-##clean up annotation
+##clean up annotation removing chained entries keep the fist one
 df=exg.annot_clean(df)
 
 #remove items with no feature in alingment position
-print('Array shape for all clones', df.shape)
-df=df[~df['Annotation'].str.startswith("__")]
-print('Array shape after unnotated clones removed', df.shape)
+if noannkeep!=1:
+    print('Array shape for all clones', df.shape)
+    df=df[~df['Annotation'].str.startswith("__")]
+    print('Array shape after unnotated clones removed', df.shape)
 
-#keep only that are named in parameter section
+#keep only samples that are named in parameter section
 keeps=samples+['Annotation']
 df=df[keeps]
 #run normalizatiion routine

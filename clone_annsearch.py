@@ -10,14 +10,16 @@ based on coordinates the script removes short bins less than 150 and makes a dit
 
 ############ param ##########
 
-indf='diff_out_master_frag.csv' #CSV that lists unannotated fragments
-indic='./clone_count/clone_count_dic.pkl' #pickle with dictionatry that contains names and not counts, turn off counting function( dic_reduce) in clone_count.py
+indf='diff_out_master_recount.csv' #CSV that lists unannotated fragments
+indic='./recount/namerec_dic.pkl' #pickle with dictionatry that contains names and not counts (adjust parm before running clone_count), turn off counting function( dic_reduce) in clone_count.py
 outfl='outdiff.txt' #file with blast results
 
-fltrshort=200 # set to remove every clone that is shorter 
-toplist=100 # set number of frabment to investigate
-sambamloc='clone_count/*.sam' #location of sam or bam files
-
+fltrshort=50 # set to remove every clone that is shorter 
+toplist=150 # set number of frabment to investigate
+sambamloc='recount/*.sam' #location of sam or bam files
+#default blast will run over Internet use those params if run localy
+locblast=0 # use '1' if run locally
+nrloc='/nfs/dths_gems_sata/references/blast_nr/nr'
 
 ############# imports ########
 import pickle
@@ -57,9 +59,15 @@ def filter_short(df):
 def blast_seq(seq):
     from Bio.Blast import NCBIWWW
     from Bio.Blast import NCBIXML
+    from Bio.Blast.Applications import NcbiblastxCommandline
 
     write_seq(seq) # option to write sequence down
-    b_result=NCBIWWW.qblast('blastn', 'nt', seq, descriptions=1, hitlist_size=1)
+    if locblast==1:
+        #use local blast
+        b_result=NcbiblastxCommandline(query=seq, db=nrloc, outfmt=0, num_descriptions=1)
+    else: 
+        b_result=NCBIWWW.qblast('blastn', 'nt', seq, descriptions=1, hitlist_size=1)
+    
     b_parsed=NCBIXML.parse(b_result)
     item=next(b_parsed)
     for i in item.alignments:
@@ -111,7 +119,8 @@ except OSError:
 df=pd.read_csv(indf, index_col='Unnamed: 0') #open csv with counts 
 df=exg.annot_clean(df)
 print('List contains all entries', len(df))
-df=df[df['Annotation'].str.startswith('__')]
+#df=df[df['Annotation'].str.startswith(('__', 'no', 'am', 'al', 'to'))]
+df=df[df['Annotation'].str.contains('(^[a-z])')]
 print('List contains unannotated entries:', len(df))
 df, sloc=filter_short(df)   #filter shorts
 #df=df.iloc[:toplist, :]
