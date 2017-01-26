@@ -21,7 +21,7 @@ def open_lib(path): #loads pickled df into memory
         sys.exit(2)
 
 def annot_clean (df):
-    '''cleans up annotation column by removing repeated items '''
+    '''cleans up annotation column by removing repeated items for each row'''
     def transf(annt): 
         annt=str(annt)
         for i in ['(', ')', '\'', '\"', ' ']:
@@ -39,14 +39,26 @@ def annot_clean (df):
     return(df)
     
 def single_end(df):
-    '''colapses bins based on start and end position to 
-        only start position bins
-        works with fragment library only'''
-    pass
+    '''colapses bins based on start and end position to
+       only start position bins
+       works with fragment library only'''
+
     loc=df.index
     df['Chr'], df['Pos1'], df['Pos2']=zip(*loc)
     del(df['Pos2'])
-    df=df.groupby(['Chr', 'Pos1']).sum()
+    df['Chr']=df['Chr']+', '+(df['Pos1'].astype('str'))
+    del(df['Pos1'])
+    lc=df.columns
+    lcnum=[x for x in lc if x!='Annotation']
+    dfnum=df[lcnum]
+    dfobj=df[['Annotation', 'Chr']]
+    dfnum=dfnum.groupby(['Chr']).sum()
+    dfnum.index.name=None
+    dfobj=dfobj.groupby(['Chr']).apply(lambda x: ', '.join({str(a) for a in x['Annotation']}))
+    dfobj.index.name=None
+    dfobj.columns=['Annotation']
+    dfobj.name='Annotation'
+    df=pd.concat([dfnum, dfobj], axis=1)
     return(df)
     
 def norm_varr(df, method='tc', tresh=10, meanfilter=1.3):

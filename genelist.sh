@@ -1,38 +1,53 @@
 # modified from phm_divesity_genelist.sh to analyse Miseq data for Severn Phage pipe libraries
 # Provide a location for the data files
-
 # modified from phm_diversity_append.sh, to work on single set of sequences from custom primer
+# modified from tri_genelist.sh, to work with NextSeq set for p3 libraries
 
 # The script evaluates quality, perform clean up (remove primer sequences at the end), puts the clean reads via tophat/hts count pipeline to evaluate number of genes (1) and number of reads for each gene (2). 
-
 # This scrip is based on  hiseq_trio/hum_cln_seq.sh, next phm_diversity.sh
 
 # START SCRIPT from within the directory
+# usage: script.sh path_to_input_files
 ############################# 
 
 
 #part1. prepare the environment for the processing.
 echo "The script_" $(basename $0) "_was started at:" $(date)
 
+if [ -z "$1"]
+then
+echo "No path to files suppled, exiting"
+exit
+fi
+
+data=$(basename $1)
+
 PDIR=$(pwd)
 
 #make processing directory to place work files
-mkdir -p /nfs/gems_sata/tedder/evgueni/anal/$(basename $PDIR)
-[ -e Processed_data ] || ln -s /nfs/gems_sata/tedder/evgueni/anal/$(basename $PDIR)/ Processed_data
+mkdir -p /nfs/gems_sata/tedder/evgueni/anal/"$data"
+[ -e Processed_data ] || ln -s /nfs/gems_sata/tedder/evgueni/anal/"$data"/ Processed_data
+
+#part1.5. pre proceessing QC: fastqc
+mkdir -p qc/qc_pre
+(/home/josh/collabs/software/FastQC/fastqc -t 10 -o qc/qc_pre --noextract \
+"$data"/*.fastq.gz &> qc/qc_pre/preqc.log)&
+echo 'Pre-qc has started'
 
 #part2. adapter removal: cutadapt alone or wt combination with Trim Galore
 #run cutadapt
 
-for i in /home/kount002/Seq_data/Human/$(basename $PDIR)/*R1* ; do
+for i in /home/kount002/Seq_data/Human/"$data"/*R1* ; do
 si=$(basename $i) #cuts the file name
-dir=$(echo $si | cut -d "_" -f1) #cuts the sample name
+name=$(echo $si | sed -e 's/_R._[0-9]*\.fastq\.gz//')
+dir=$(echo $si | sed -e 's/_S[0-9]*_R._[0-9]*\.fastq\.gz//' -e 's/^E//' -e 's/-//g' -e 's/_//g') 
 echo "Adapter processing of ....." "$dir", "$si"
 mkdir -p "$PDIR"/Processed_data/"$dir"
 
 (
 #create input file variables
-file1=$(ls ~/Seq_data/Human/$(basename $PDIR)/"$dir"*R1*)
-file2=$(ls ~/Seq_data/Human/$(basename $PDIR)/"$dir"*R2*)
+file1=$(ls ~/Seq_data/Human/"$data"/"$name"*R1*)
+file2=$(ls ~/Seq_data/Human/"$data"/"$name"*R2*)
 
 # R1 reads use universal primers for sequencing works with compressed data
 #for R1 look for complement of 3-end of insert + Index adapter: GTTGCGGCCGCTGGATTGATCGGAAGAGCACACGTCTGAACTCCAGTCAC  ( insert sequence starts with CCATGGCCGCCGAGAAC edd to universal adapter in reverse when cleaning for R2)
@@ -53,6 +68,12 @@ rm "$PDIR"/Processed_data/"$dir"/"$dir"_atmp1.fastq.gz "$PDIR"/Processed_data/"$
 echo "$si" 'adapters are being removed'
 done
 wait
+
+
+PATH=/opt/bowtie2-2.2.3:/opt/tophat-2.0.12.Linux_x86_64:/home/kount002/.local/bin:/home/kount002/scripts:/usr/lib64/qt-3.3/bin:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/opt/Symantec/symantec_antivirus:/opt/bowtie2-2.2.3:/opt/tophat-2.0.12.Linux_x86_64:/home/kount002/.local/bin:/home/kount002/scripts:/home/kount002/binaries:/home/kount002/binaries/Cyton_0.24/bin
+export $PATH
+
+
 
 #check if the processed files are exitst, otherwise exit 2
 ls Processed_data/*/*.fastq.gz &> /dev/null || ( echo "Files with removed adapter not found" && exit 2 )
@@ -77,13 +98,12 @@ echo "Tophat processing ...." "$i", "$si"
 
 (
 mkdir -p Processed_data/"$si"/tophat
-tophat --read-mismatches 7 --read-gap-length 2 --read-edit-dist 7 -p 4 -r 150 -o Processed_data/"$si"/tophat \
+tophat --read-mismatches 7 --read-gap-length 2 --read-edit-dist 8 -p 4 -r 150 -o Processed_data/"$si"/tophat \
 -G /nfs/gems_sata/references/hg19/Homo_sapiens/UCSC/hg19/Annotation/Archives/archive-2014-06-02-13-47-56/Genes/genes.gtf \
 /nfs/gems_sata/references/hg19/Homo_sapiens/UCSC/hg19/Sequence/Bowtie2Index/genome \
 $file1 $file2 &> Processed_data/"$si"/tophat/"$si"_tophat_stout.log
 )&
 
-echo "$si" "...is being processed by tophat" 
 done
 wait
 

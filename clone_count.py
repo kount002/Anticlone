@@ -6,9 +6,10 @@ Takes bam file as input and counts all unique clones(read pairs) using unique co
 
 As input the program will require -i
 USAGE:
-clone-count.py -i input_bam_file [-n output_file_name_prefix] [-b mask_for_batch_processing]
-Example python3.3 clone-count.py -i Processed_data/EK\*/tophat/accepted_hits.bam
+clone-count.py -i input_bam_file [-n output_file_name_prefix] [-b mask_for_batch_processing] [-f bin size]
+Example python3.3 clone_count.py -i Processed_data/EK\*/tophat/accepted_hits.bam -f 150 -b yes
 Need to escape *
+Example nohup python clone_count.py -i recount/K*.sam -f 100 -b yes -n renames
 check is done for the length of path(4), processes as a batch
 Dictionary structure:
 mast:
@@ -21,7 +22,11 @@ However the sripts runs fine if started from IPython3 environment via 'run clone
 
 
 """
+########### Param #############
+rduce=0 #make 0 if want keep names of the reads for each fragment bin, 1 if want to convert them to counts
 
+
+###############################
 
 import argparse
 import os
@@ -39,7 +44,7 @@ import numpy as np
 #import pysam
 
 
-def converter(f, sampleout): #converts bam file into sam in saves them in subdirecotry (see -n option)
+def converter(f, sampleout): #converts bam file into sam, annotates it and saves them in subdirecotry (see -n option)
     #pathout=inpp+'/'+sampleout+'hta.sam'
     pathout=os.path.join(inpp, sampleout + 'hta.sam')
     #??Does samtools create new dir as part of output path? May need to make dir with sys.join?
@@ -224,7 +229,7 @@ def dic_df(mast): #convert master dictionary to list of dataframes
 #    return(cdic)
     
             
-################# function section is above ############
+################# Main ############
        
 
 parser = argparse.ArgumentParser(description='''Converts bam/sam files into dataframe and dictionary for analysis''')
@@ -282,7 +287,8 @@ else:
                                      
     else:
         print('Cannot figure the path', sourcefl) 
-    dic_reduce(mast)
+    if rduce!=0:
+        dic_reduce(mast)
     #save_db(mast) #convert master dict to sqlite db
     save_pickle(mast) #convert master dict to pickle dump
     save_pickle(dic_df(mast))        

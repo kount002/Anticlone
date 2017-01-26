@@ -12,19 +12,19 @@ Sort items by max expression or max difference between
 Uses graphs that are sample specific, 
 """
 ################### Params ###############
-inputs='master.pkl' #path
-output='diff_out_master.csv' #path
+inputs='recount/recount_df.pkl' #path
+output='diff_out_master_recount.csv' #path
 #fname='p_value_hist.png' # path to figure
 
 method='upper85' #normalalizaiton method (upper80, tc, RLE80, med, max)
 tresh=1 #normalization based on minimum absolute count (provide minimum count)
 meanfilter=1.3 #normalization based on mean expression (folds of the tresh) (removes genes wt mean expression less then value)
 
-
+noannkeep=1 #'1' keeps all entries including ones with no annotation; '0' or else will remove unannotated bins
 foldover=1 #fold over max(control)
 
 groups={
-    'NMO_interest':['K20120','K20320','K20420','K20520','K20620'],
+    'SLE_interest':['K10820','K10920','K11020','K11120','K11220'],
     'Healthy_compare':['K10120','K10220','K10320','K10420','K10520'],
     'NOS_control':['KNOS120','KNOS220','KNOS20'],
     'RUT_control':['KRut120','KRut220','KAbMix20']
@@ -61,9 +61,28 @@ samples=[y for x in groups.values() for y in x] #flatten groups dict
 for i in samples:
     if i not in cont:
         print(i, 'Not present in the sample library, check PARAM section')
-        
+
+#asks if the file works with gene list or fragment list and reduces bins to single position for fragment file        
+if 'gene' not in list(cont):
+    print('To collapse change line 68: Collapsing fragment bins to single-end bins')
+    #df=exg.single_end(df)
+
+    
+##clean up annotation removing chained entries keep the fist one
+df=exg.annot_clean(df)
+
+#remove items with no feature in alingment position
+if noannkeep!=1:
+    print('Array shape for all clones', df.shape)
+    df=df[~df['Annotation'].str.startswith("__")]
+    print('Array shape after unnotated clones removed', df.shape)
+
+#keep only samples that are named in parameter section
+keeps=samples+['Annotation']
+df=df[keeps]
+#run normalizatiion routine
 df=exg.norm_varr(df, method, tresh, meanfilter)
-     
+
 #create df with means of the groups
 dfm=pd.DataFrame()
 for k, i in groups.items():
@@ -86,8 +105,8 @@ dfmb=dfm.loc[dfm[interkeys[0]]>foldover*dfm['max_control']]
 dfmb=dfm # does not do control subtraction, only compares to Healthy
     
 #filter out all that less than max(controls)
-#clean up annotation
-dfmb=exg.annot_clean(dfmb)
+##clean up annotation
+#dfmb=exg.annot_clean(dfmb)
 
 #plots to check for normalization using unculled list
 if len(dfm)>10000:
@@ -115,7 +134,6 @@ for i in comparekeys:
 #dfmb['diff_N']=dfmb[interkeys[0]]-dfmb[comparekeys[0]]
 comparename=[x for x in dfmb.columns if x.find('diff')>=0]
 dfmb.sort_values(comparename[0], axis=0, ascending=False, inplace=True)
-print(dfmb.head(10))
 dfmb.to_csv(output)
 
 #testing
