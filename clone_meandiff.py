@@ -89,9 +89,9 @@ for k, i in groups.items():
     nname='mean_'+k
     dfm[nname]=df[i].mean(axis=1)
     dfm[i]=df[i]
-
+#adds 'Annotation' column and places it in front of all columns
 dfm['Annotation']=df['Annotation']
-cols=dfm.columns #put Annotation in front of all columns
+cols=dfm.columns.tolist()
 cols=cols[-1:]+cols[:-1]
 dfm=dfm[cols]
 
