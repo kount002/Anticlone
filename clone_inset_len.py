@@ -9,15 +9,15 @@ The clones with introns are filtered out.
 '''
 
 ########### Param ##############
-infile='clone_count/H20NOShta.sam' #input sam file to read
-infile='clone_count/C18RUThta.sam'
+samplenames=['K10120', 'K10320', 'KNOS220', 'K20120', 'K20420', 'K11020', 'K11120']
+infile='clone_count/K11120hta.sam'
 count=20000 # number of clones to analyse
 
 
 ########### Import #############
 import pandas as pd
 import matplotlib
-# matplotlib.use('Agg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
@@ -25,7 +25,6 @@ import matplotlib.pyplot as plt
 
 def mk_dic(infile, count):
     print('Collecting on {0}, for {1} lines'.format(infile, count))
-    mastdict=defaultdict(list)
     sizelist=[]
     with open(infile, 'r') as infl:
         counter=0
@@ -49,11 +48,22 @@ def mk_dic(infile, count):
 
 ########### Main ################
 
-sizelist=mk_dic(infile, count)
-sizefilter=[x for x in sizelist if x<700]
-print('Mean fragment size:', sum(sizefilter)/len(sizefilter))
-plt.hist(sizefilter, bins=700)
-plt.xlabel('Insert size')
-plt.ylabel('Frequency')
-plt.savefig('freqhist.png', dpi=600)
+
+for i in samplenames:
+    samplename=i
+    infile='clone_count/'+samplename+'hta.sam'
+    sizelist=mk_dic(infile, count)
+    sizefilter=[x for x in sizelist if x<700]
+    meansize=sum(sizefilter)/len(sizefilter)
+    meansize=int(meansize)
+
+    outfile='freqhis_'+samplename+'_'+str(meansize)+'.png'
+    sizelist=mk_dic(infile, count)
+    print('Mean fragment size:', meansize)
+    plt.hist(sizefilter, bins=70)
+    plt.ylim(0,900)
+    plt.xlabel('Insert size')
+    plt.ylabel('Frequency')
+    plt.savefig(outfile, dpi=600)
+    plt.close()
 
