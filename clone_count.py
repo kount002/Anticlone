@@ -23,7 +23,7 @@ However the sripts runs fine if started from IPython3 environment via 'run clone
 
 """
 ########### Param #############
-rduce=0 #make 0 if want keep names of the reads for each fragment bin, 1 if want to convert them to counts
+rduce=1 #make 0 if want keep names of the reads for each fragment bin, 1 if want to convert them to counts
 
 
 ###############################
@@ -62,7 +62,7 @@ def janitor(): #cleanup intermediate files
 
 def collector(pathin, r=10): #process file and gets unique reads
     
-    def cust_round(val, r=10):
+    def cust_round(val, r=10): #rounds up the position of the clones to create sorting bins
         rval=int(r*(round(int(val)/r)))
         return(rval)
     
@@ -101,8 +101,21 @@ def collector(pathin, r=10): #process file and gets unique reads
                 continue
             name=[lines[0]]            
             chrn=lines[2]
-            pos1=cust_round(lines[3], r)
-            pos2=cust_round(lines[7], r)                        
+
+            #locate start and end of the clone and orient pos1<pos2. End is start of pos1 plus length of the clone
+            pos2=int(lines[7])+int(lines[8])
+            pos1=int(lines[3])
+            pos1=min(pos1, pos2)
+            pos2=max(pos1, pos2)
+            
+            pos1=cust_round(pos1, r)
+            pos2=cust_round(pos2, r)
+
+            ##old solution remove
+            ##pos1=cust_round(lines[3], r)
+            ##pos2=cust_round(lines[7], r)                        
+            ##
+
             #pos1=round(int(lines[3]), r) #convert into int roundup to reduce bins and reduce resolution
             #pos2=round(int(lines[7]), r) #old 10/100/1000 based rounding
             annt=[lines[-1].strip('XF:Z:')]
