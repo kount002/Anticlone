@@ -2,6 +2,8 @@
 """
 Created on Tue Apr 19 09:42:03 2016
 @author: Evgueni
+Truncated version of clone_count.py
+requires preannotated files
 Takes bam file as input and counts all unique clones(read pairs) using unique coordinates
 
 As input the program will require -i
@@ -23,8 +25,8 @@ However the sripts runs fine if started from IPython3 environment via 'run clone
 
 """
 ########### Param #############
-rduce=0 #make 0 if want keep names of the reads for each fragment bin, 1 if want to convert them to counts
-
+rduce=1 #make 0 if want keep names of the reads for each fragment bin, 1 if want to convert them to counts
+maq=10 #removes reads with low mapping quality, mostly ambigious. Set to '0' to disable
 
 ###############################
 
@@ -62,7 +64,7 @@ def janitor(): #cleanup intermediate files
 
 def collector(pathin, r=10): #process file and gets unique reads
     
-    def cust_round(val, r=10):
+    def cust_round(val, r=10): #rounds up the position of the clones to create sorting bins
         rval=int(r*(round(int(val)/r)))
         return(rval)
     
@@ -99,10 +101,29 @@ def collector(pathin, r=10): #process file and gets unique reads
                 continue
             if len(lines[6])>1: # removes reads that al to diff chr (check if sets for names and annotations are present in the list
                 continue
+            if int(lines[4])<maq: # removes reads with mapping quality less then 0.1
+                continue
             name=[lines[0]]            
             chrn=lines[2]
-            pos1=cust_round(lines[3], r)
-            pos2=cust_round(lines[7], r)                        
+
+            #locate start and end of the clone and orient pos1<pos2. End is start of pos1 plus length of the clone
+            pos1=min(int(lines[3]), int(lines[7])) #accouts for orientation of the reads
+            pos2=pos1+abs(int(lines[8]))
+
+            #incorrect postion 2 math 
+            #pos2=int(lines[7])+int(lines[8])
+            #pos1=int(lines[3])
+            #pos1=min(pos1, pos2)
+            #pos2=max(pos1, pos2)
+            
+            pos1=cust_round(pos1, r)
+            pos2=cust_round(pos2, r)
+
+            ##old solution remove
+            ##pos1=cust_round(lines[3], r)
+            ##pos2=cust_round(lines[7], r)                        
+            ##
+
             #pos1=round(int(lines[3]), r) #convert into int roundup to reduce bins and reduce resolution
             #pos2=round(int(lines[7]), r) #old 10/100/1000 based rounding
             annt=[lines[-1].strip('XF:Z:')]

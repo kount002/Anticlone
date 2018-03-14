@@ -10,8 +10,8 @@ The clones with introns are filtered out.
 
 ########### Param ##############
 samplenames=['K10120', 'K10320', 'KNOS220', 'K20120', 'K20420', 'K11020', 'K11120']
-infile='clone_count/K11120hta.sam'
-count=20000 # number of clones to analyse
+#infile='clone_count/K11120hta.sam'
+count=15 # number of clones to analyse
 
 
 ########### Import #############
@@ -58,7 +58,6 @@ for i in samplenames:
     meansize=int(meansize)
 
     outfile='freqhis_'+samplename+'_'+str(meansize)+'.png'
-    sizelist=mk_dic(infile, count)
     print('Mean fragment size:', meansize)
     plt.hist(sizefilter, bins=70)
     plt.ylim(0,900)
