@@ -39,8 +39,8 @@ echo 'Pre-qc has started'
 
 for i in /home/kount002/Seq_data/Human/"$data"/*R1* ; do
 si=$(basename $i) #cuts the file name
-name=$(echo $si | sed -e 's/_R._[0-9]*\.fastq\.gz//')
-dir=$(echo $si | sed -e 's/_S[0-9]*_R._[0-9]*\.fastq\.gz//' -e 's/^E//' -e 's/-//g' -e 's/_//g') 
+name=$(echo $si | sed -e 's/_R[1,2]\.fastq\.gz//')
+dir=$(echo $si | sed -e 's/_R[1,2]\.fastq\.gz//') 
 echo "Adapter processing of ....." "$dir", "$si"
 mkdir -p "$PDIR"/Processed_data/"$dir"
 

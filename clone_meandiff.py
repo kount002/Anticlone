@@ -12,11 +12,11 @@ Sort items by max expression or max difference between
 Uses graphs that are sample specific, 
 """
 ################### Params ###############
-inputs='recount/recount_df.pkl' #path
-output='diff_out_master_recount.csv' #path
+inputs='clone_count/clone_count_df.pkl' #path
+output='diff_out.csv' #path
 #fname='p_value_hist.png' # path to figure
 
-method='upper85' #normalalizaiton method (upper80, tc, RLE80, med, max)
+method='upper94' #normalalizaiton method (upper80, tc, RLE80, med, max)
 tresh=1 #normalization based on minimum absolute count (provide minimum count)
 meanfilter=1.3 #normalization based on mean expression (folds of the tresh) (removes genes wt mean expression less then value)
 
@@ -24,10 +24,10 @@ noannkeep=1 #'1' keeps all entries including ones with no annotation; '0' or els
 foldover=1 #fold over max(control)
 
 groups={
-    'SLE_interest':['K10820','K10920','K11020','K11120','K11220'],
-    'Healthy_compare':['K10120','K10220','K10320','K10420','K10520'],
-    'NOS_control':['KNOS120','KNOS220','KNOS20'],
-    'RUT_control':['KRut120','KRut220','KAbMix20']
+    '201_compare':['20118', '20120', '20122', '201R20'],
+    'H_interest':['AbMix18', 'AbMix20', 'AbMix22'],
+    'NOS_control':['NOS18', 'NOS20', 'NOS22'],
+    
         }
 
 #'K10820','K10920','K11020','K11120','K11220'],

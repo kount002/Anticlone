@@ -206,13 +206,15 @@ def MA_plot(samp1, samp2, name):
     name to name a file to save
     eg: df['columnA']
     '''
+    plt.clf()
     smean=np.mean([samp1.values, samp2.values], axis=0)
     sdif=np.subtract(samp1.values, samp2.values)
     plt.scatter(smean, sdif, alpha=0.4)
-    #plt.ylim()
+    plt.ylim(-2,5)
     plt.xlim(smean.min())
     plt.xlabel('Mean expression')
     plt.ylabel('Difference' )
+    plt.tight_layout()
     name='MA_plot'+name+'.png'
     plt.savefig(name)
     plt.close()
@@ -263,19 +265,25 @@ def heat_map(): #requires #import seaborn as sns#
 def wisker():
     pass
 
-def scat_matrix(): #need lcs
+def scat_matrix(df, lcs, name='namefig'):
+    ''' requres dataframe and list of samples for a scatter. Name for the file to save '''
+
     plt.clf()
     #does not like NaN values; need to replace and fill before using
     #sns.PairGrid has option dropna. consider
     dfx=df.fillna(0)
     arr=np.array(dfx[lcs])
     arr[arr<0]=0
-    dfx[lcs]=pd.DataFrame(arr, index=dfx.index)
+    dfs=pd.DataFrame(arr, index=dfx.index, columns=lcs)
     #dfx[lcs]=dfx[lcs][dfx[lcs]<0]=0
     sns.set(font_scale=2)
-    g=sns.PairGrid(dfx)
-    g=g.map(plt.scatter, alpha=0.5)
-    plt.savefig('namefig.png')
+    g=sns.PairGrid(dfs, size=6)
+    g=g.map_offdiag(plt.scatter, alpha=0.5)
+    g=g.map_diag(plt.hist, bins=50)
+    g.set(xlim=(0,6), ylim=(0,6))
+    name=name+'png'
+    plt.savefig(name)
+    plt.close()
     
 def cluster_map():
     plt.clf()
