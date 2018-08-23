@@ -62,7 +62,7 @@ def janitor(): #cleanup intermediate files
     #os.remove() # hta.sam from converter?
     
 
-def collector(pathin, r=10): #process file and gets unique reads
+def collector(pathin, r=10): #process file and gets unique reads, 'r' specifies rounding window
     
     def cust_round(val, r=10): #rounds up the position of the clones to create sorting bins
         rval=int(r*(round(int(val)/r)))
@@ -85,7 +85,7 @@ def collector(pathin, r=10): #process file and gets unique reads
             #pos1=round(int(lines[3]), r) #convert into int roundup to reduce bins and reduce resolution
             #pos2=round(int(lines[7]), r)  #old function using order 
             annt=[lines[-1].strip('XF:Z:')]
-            key=(chrn, pos1, pos2)
+            key=(chrn, pos1, pos2) #creates tuple for dictionary key
             #print(key,'masterkey')
             if len(mastdict[key])==0:   #data structure: {(pos1,pos2):[{set of names},{set of annotations}]}
                 mastdict[key].append(set())  #add sets names and annotations to list
@@ -214,11 +214,11 @@ def dic_reduce(mast): #replaces set of read names with count
     return(mast)
     
 
-def dic_df(mast): #convert master dictionary to list of dataframes
+def dic_df(mast): #convert master dictionary, which is dictionary of dictionaries, to a list of dataframes for each sample
 
-    dfmast=pd.DataFrame(index=None, columns=['Annotation'])
+    dfmast=pd.DataFrame(index=None, columns=['Annotation']) #make an empty master df
     dfmast['Annotation'].astype(str)
-    for i in mast:
+    for i in mast: #for a sample in master dict
         dftm=pd.DataFrame.from_dict(mast[i], orient='index')
         dftm.columns=[i, 'Annotation']
         dftm['Annotation']=dftm['Annotation'].astype(str).map(lambda x: x.strip("{'}"))
@@ -227,9 +227,14 @@ def dic_df(mast): #convert master dictionary to list of dataframes
     lc=['Annotation']+['Annotation'+i for i in mast]
     dfmast[lc]=dfmast[lc].fillna('none')
     #print(dfmast[lc].head())
-    dfmast['Annotation']=dfmast[lc].apply(lambda x: tuple(x.unique()), axis=1)
-    dfmast['Annotation']=dfmast['Annotation'].apply(lambda x: tuple([c for c in x if c!='none']))
+    dfmast['Annotation']=dfmast[lc].apply(lambda x: list(x.unique()), axis=1)
+    dfmast['Annotation']=dfmast['Annotation'].apply(lambda x: list([c for c in x if c!='none']))
     dfmast.drop(lc[1:], axis=1, inplace=True)
+
+    #convert tuple index to stacked index
+    #print(dfmast.columns)
+    #print(dfmast.index)
+    dfmast.index=pd.MultiIndex.from_tuples(dfmast.index, names=['Chr', 'Start_Pos', 'End_Pos'])
     
     return(dfmast)
     
@@ -310,11 +315,13 @@ else:
         print('Cannot figure the path', sourcefl) 
     if rduce!=0:
         dic_reduce(mast)
+    
+    '''Save options for output'''
     #save_db(mast) #convert master dict to sqlite db
-    save_pickle(mast) #convert master dict to pickle dump
-    save_pickle(dic_df(mast))        
-    #dfmast=dic_df(mast)
-        
+    #save_pickle(mast) #convert master dict to pickle dump
+    #save_pickle(dic_df(mast))   #convert master dictionary to df and pickles it     
+    dfmast=dic_df(mast)
+    dfmast.to_csv('clone_count_output.csv')    
         
              
 print('Im done')        
