@@ -11,6 +11,8 @@ USAGE:
 clone-count.py -i input_bam_file [-n output_file_name_prefix] [-b mask_for_batch_processing] [-f bin size]
 Example python3.3 clone_count.py -i Processed_data/EK\*/tophat/accepted_hits.bam -f 150 -b yes
 Need to escape *
+
+If previously processed sam files containing annotation are present provide path to sam file to avoid running convertion to sam and reannotation
 Example nohup python clone_count.py -i recount/K*.sam -f 100 -b yes -n renames
 check is done for the length of path(4), processes as a batch
 Dictionary structure:
@@ -38,6 +40,7 @@ import sqlite3
 import pickle
 import pandas as pd
 import numpy as np
+import re
 
 
 #import sqlite3
@@ -221,16 +224,19 @@ def dic_df(mast): #convert master dictionary, which is dictionary of dictionarie
     for i in mast: #for a sample in master dict
         dftm=pd.DataFrame.from_dict(mast[i], orient='index')
         dftm.columns=[i, 'Annotation']
-        dftm['Annotation']=dftm['Annotation'].astype(str).map(lambda x: x.strip("{'}"))
+        dftm['Annotation']=dftm['Annotation'].astype(str).map(lambda x: re.sub(r'__', '', x))
+        dftm['Annotation']=dftm['Annotation'].astype(str).map(lambda x: re.sub(r'[\{\}\"\' ]', '', x))      #x.strip("{'}\""))
         dfmast=dfmast.join(dftm, how='outer', lsuffix=i)
+        #print('mast:', dfmast.shape, 'dftm', dftm.shape)
         
     lc=['Annotation']+['Annotation'+i for i in mast]
-    dfmast[lc]=dfmast[lc].fillna('none')
-    #print(dfmast[lc].head())
+    dfmast[lc]=dfmast[lc].fillna('none') #repaces NaN in all vertions of Annotation
     dfmast['Annotation']=dfmast[lc].apply(lambda x: list(x.unique()), axis=1)
-    dfmast['Annotation']=dfmast['Annotation'].apply(lambda x: list([c for c in x if c!='none']))
+    dfmast['Annotation']=dfmast['Annotation'].apply(lambda x: str([c for c in x if c!='none']))
     dfmast.drop(lc[1:], axis=1, inplace=True)
-
+    dfmast['Annotation']=dfmast['Annotation'].astype(str).map(lambda x: re.sub(r'[\[\]\'\" ]', '', x))   #x.strip('[]\'\"'))
+    dfmast['Annotation']=dfmast['Annotation'].astype(str).map(lambda x: set(x.split(',')))
+    dfmast['Annotation']=dfmast['Annotation'].astype(str).map(lambda x: re.sub(r'[\{\}\'\" ]', '', x))
     #convert tuple index to stacked index
     #print(dfmast.columns)
     #print(dfmast.index)
