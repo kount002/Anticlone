@@ -8,21 +8,27 @@ and returns clones that are significantly different
 """
 ################### Params ###############
 inputs='hts.pkl' #path
+inputs='../170930_MSseq/Junknorm_comb.csv'
 save='stat_out_master_HN.csv' #path
 fname='p_value_hist.png' # path to figure
 method='upper80' #normalalizaiton method (upper, tc, med, max)
 #check list of analyses?
-kruskal=0 #if set to 1 will use non-parametric anova
+kruskal=1 #if set to 1 will use non-parametric anova
 welch=0 #(use with kruskal=0); if set to 1 will use Welch if '0' will ignore
 groups={
-    'gr1':['K20120','K20320','K20420','K20520','K20620'],
-    'gr2':['K10120','K10220','K10320','K10420','K10820']
+    'gr1':['K10520','K10920','K11020','K11120','K11220', 'E107', 
+           'E113', 'E114', 'E115', 'E116', 'E117'],
+    'gr2':['K10120','K10220','K10320','K10420','K10820', 'E150',
+           'E151', 'E152', 'E153', 'E000','EInLib']
         }
 
 #'K10820','K10920','K11020','K11120','K11220'],
-#['K20120','K20320','K20420','K20520','K20620'
 #'K10120','K10220','K10320','K10420','K10520'
 #'KRut120','KRut220','KAbMix20'
+#'K20120','K20320','K20420','K20520','K20620', 'E202', 
+#    'E207', 'E208', 'E209', 'E210', 'E211'
+# 'K10120','K10220','K10320','K10420','K10820', 'E107', 
+#    'E150', 'E151', 'E152', 'E153', 'E000','EInLib'
 
 
 ############ imports #####################
@@ -74,10 +80,15 @@ def main():
     print('Using parametric/non-parametric Anova "0/1"', kruskal)
             
     #load library
-    df=open_lib(inputs)  #load library
-    df=exg.norm_varr(df, method) #normalize and log transform
-    df.fillna(0, inplace=True)
-    
+    if inputs.endswith('pkl'):
+        print( 'Using pickle input not, will normalize')
+        df=open_lib(inputs)  #load library
+        df=exg.norm_varr(df, method) #normalize and log transform
+        df.fillna(0, inplace=True)
+
+    else:
+        print('Using csv input')        
+        df=pd.read_csv(inputs, header=0)    
     #convert groups ID to indeces
     groupn=convert_gr(df, groups)
     

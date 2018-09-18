@@ -204,7 +204,7 @@ def dic_df(mast): #convert master dictionary to list of dataframes
         dfmast=dfmast.join(dftm, how='outer', lsuffix=i)
         
     lc=['Annotation']+['Annotation'+i for i in mast]
-    dfmast[lc]=dfmast[lc].fillna('none')
+    dfmast[lc]=dfmast[lc].fillna(' none')
     #print(dfmast[lc].head())
     dfmast['Annotation']=dfmast[lc].apply(lambda x: tuple(x.unique()), axis=1)
     dfmast['Annotation']=dfmast['Annotation'].apply(lambda x: tuple([c for c in x if c!='none']))

@@ -60,8 +60,35 @@ def single_end(df):
     dfobj.name='Annotation'
     df=pd.concat([dfnum, dfobj], axis=1)
     return(df)
+
+def pre_norm (dfraw):
+    '''Runs prenormalization for a set of genes and helps to select
+    genes to use as normalization set. Those gene a junk, background
+    genes that are assumed to be equivalent between the samples.
+    Build on an assumptions that junk is abandunt, high count, and
+    correlates in intensity between samples. 
+    Function outputs a df with gene list and clustermap figure.
+    Function takes a raw counts df, that has no Annotation column
+    and nor _ambious reads.
+    '''
     
-def norm_varr(df, method='tc', tresh=10, meanfilter=1.3):
+    #dfraw=pd.read_csv(file, header=0, sep=' ')
+    dfraw.replace(0, np.nan, inplace=True)
+    try:
+        dfraw.index=dfraw['gene']        
+        del(dfraw['gene'])  
+    except:
+        pass
+    dflog=np.log10(dfraw.iloc[:,:])
+    dflog.fillna(0, inplace=True)
+    dflogs=dflog[dflog.iloc[:,:].min(axis=1)>1.1]
+    fig=sns.clustermap(dflogs.T.corr())
+    plt.setp(fig.ax_heatmap.get_yticklabels(), rotation=0)    
+    dflogs.to_csv('norm_by_junt.csv')
+    return(dflogs)
+
+    
+def norm_varr(df, method='tc', contgene=[], tresh=1, meanfilter=1.0):
     ''' clone_count.py outputs raw clone counts. 
     Takes values for normalization methods: 'tc' - total count or 'med' - median
     'tc': (default) Function normalizes count as: count*ave(sum of sums)/specific sums
@@ -69,13 +96,27 @@ def norm_varr(df, method='tc', tresh=10, meanfilter=1.3):
     does ignores 0 counts for median calculation.
     'max': uses max value to normalize
     'upper': uses upper quartile normalization
+    'contgeneRLE50': need contgene, and uses RLE50 for control gene set
+    'quantile': uses a rank normalization
     Does not consider samples with 'NOS' in name when removes low count genes from analysis
-    Can change filtration of low experssed genes, use lines at the end     
+    Can change filtration of low experssed genes, use lines at the end    
     
     
     #may need to insert NaN back in place of 0. See what are your needs will be
     #log transfom in the last expression    
     #very fast compared to pandas version '''
+
+    def rle_norm(aar):
+        '''subfunction that calculates rle for normalization.
+        Created to minimize reuse of the code for overall and
+        control gene list '''
+        meansample=np.exp(np.mean(np.log(aar), axis=1)) #synthetic sample made of geo means
+        meansample=meansample.reshape(-1,1)
+        ratsample=aar/meansample #ratios between samples and synthetic
+        supper=np.percentile(ratsample, perc, axis=0) #percientile value        
+        amp=np.exp(np.mean(np.log(supper)))
+        supper=supper.reshape(1,-1)
+        return(amp, supper)
 
     lc=list(df.columns)
     lcs=[x for x in lc if x!='Annotation']
@@ -84,7 +125,7 @@ def norm_varr(df, method='tc', tresh=10, meanfilter=1.3):
     #df.replace(repls, tresh, inplace=True) #filter out counts that <10
     #print(df.shape)    
     df.fillna(0, inplace=True)    
-    df=df.loc[(df[lcs]>0).any(axis=1),:] #remove all 0s or adjust low counts
+    df=df.loc[(df[lcs]>0).any(axis=1),:] #remove genes with all 0s or adjust low counts
     df.is_copy=False #turns off copy change warnin    
     aar=df[lcs].values
     #aar[aar<2]=0
@@ -126,26 +167,88 @@ def norm_varr(df, method='tc', tresh=10, meanfilter=1.3):
         else:
             perc=int(method.lstrip('RLE'))
         aar[aar==0]=1 #assume no nan left
-        meansample=np.exp(np.mean(np.log(aar), axis=1))
+        
+        amp, supper=rle_norm(aar)
+        '''
+        meansample=np.exp(np.mean(np.log(aar), axis=1)) #synthetic sample made of geo means
         meansample=meansample.reshape(-1,1)
-        ratsample=aar/meansample
-        supper=np.percentile(ratsample, perc, axis=0)
+        ratsample=aar/meansample #ratios between samples and synthetic
+        supper=np.percentile(ratsample, perc, axis=0) #percientile value        
         amp=np.exp(np.mean(np.log(supper)))
         supper=supper.reshape(1,-1)
+        '''
+        
         aar=(amp*aar)/supper
-    else:
+        
+    elif method.startswith('contgeneRLE'):
+        print('Using RLE of the control gene list (contgene var):', method)
+        if method=='contgeneRLE':
+            perc=50
+        else:
+            perc=int(method.lstrip('contgeneRLE'))
+        #aar[aar==0]=1
+        '''
+        #intersect control gene list with master gene, in case of mismatches
+        idxm=df[lcs].Index()
+        idxc=pd.Index(contgene)
+        idxm.intersection(idxc)
+        '''
+        
+        contgene_d=pd.DataFrame(index=contgene) #empty df out of the control list
+        
+        #make a control gene count df
+        contgene_df=pd.merge(contgene_d, df, how='inner', \
+        left_index=True, right_on='Annotation')
+        #contgene_df.index=contgene_df(['gene'])
+        aarcont=contgene_df[lcs].values
+        aarcont[aarcont==0]=1        
+        
+        amp,supper=rle_norm(aarcont)
+        aar=(amp*aar)/supper        
+        
+    elif method.startswith('quantile'): 
+        print('Using quantile rank normalization: replace nan', method)
+        #df=10**df 
+        df.replace(0, np.nan, inplace=True)
+        rank_mean=df[lcs].stack().groupby(df[lcs].rank(method='first', ascending=False).stack().astype(int)).quantile(q=0.25)
+        dfq=df[lcs].rank(method='first', ascending=False).stack().astype(int).map(rank_mean).unstack()
+        dfq.fillna(0, inplace=True)
+        aar=dfq.values
+    else:    
         pass #for none normalization
 
+    aar[aar<1]=1 #after norm some values go <1, and turn negative after log-transform
     df[lcs]=pd.DataFrame(aar, index=df.index)
     df=df.loc[(df[lcsnos]>=tresh).any(axis=1),:] #may adjust to vary filter stringency   
-    df[lcs]=df[lcs].where(df[lcs]>=tresh, other=tresh)
-    df.replace(0, np.nan, inplace=True) #replaces all zeros for NaN #doesn't make sence anymore no need    
+    #df[lcs]=df[lcs].where(df[lcs]>=tresh, other=tresh) #replaces values that are zero and <tresh with tresh value
+    df.replace(0, np.nan, inplace=True) #replaces all zeros for NaN #no need if zeros replaced with tresh    
     df[lcs]=np.log10(df[lcs]) #log-transfrom data
+    df.fillna(0, inplace=True) #reciprocates with (where) line 
     #df=df.loc[(df[lcs]>1).any(axis=1),:]
     #df=df.loc[(df[lcsnos]>1.0).any(axis=1),:] #may adjust value for a filter
     treshlog=np.log10(tresh*meanfilter) #placeholder for alternative filter on means
+    #                                   calculates log of the minimum mean value that was set by user
     df=df.loc[(np.mean(df[lcsnos], axis=1)>treshlog),:] #alternative filter on mean across all samples    
     return(df)
+
+
+def corr_cull (df, contgene, extgene, mincorr, maxcorr):
+    ''' removes genes that correlate with PTN and MALAT1 junk.
+    takes a dataframe, contgene - list of genes used for normlization; 
+    extgene -  list of genes that are non-selected junk like MALAT1;
+    mincorr, maxcorr - min and max correlation cutoffs
+    '''
+    glist=contgene+extgene #combine list of genes to correlate with
+    try:
+        del(df['Annotation'])
+    except:
+        pass
+    dfcorr=df.T.corr()
+    dflight=df
+    for i in glist:
+        dflight=dflight[ (dfcorr[i]>=mincorr) & (dfcorr[i]<=maxcorr)]
+    return(dflight)
+
 
 def anal_prep(df):
     '''prepares the dataframe for expression analysis, log transform it
@@ -164,7 +267,8 @@ def anal_prep(df):
 
 def norm_plot(df):
     ''' plot variance of all samples vs mean expression
-        helps to determine which normalization works best for a set 
+        helps to determine which normalization works best for a set
+        Creates two plots boxplot and scatter plot
     '''
 
     lc=list(df.columns)
@@ -199,13 +303,14 @@ def norm_plot(df):
     #a.set(xlabel='Sample')
     plt.savefig('norm_box.png')
     plt.close()
-    print('Figures were generated and saved as norm_var.png. and norm')
+    print('Figures were generated and saved as norm_var.png. and norm_box.png')
     
 def MA_plot(samp1, samp2, name):
     ''' Uses dataframe or array and makes a plot of value difference vs
     mean expression
     name to name a file to save
     eg: df['columnA']
+    name is a string variable
     '''
     smean=np.mean([samp1.values, samp2.values], axis=0)
     sdif=np.subtract(samp1.values, samp2.values)
@@ -226,7 +331,7 @@ def expression_plot(samp1, samp2, name):
     frames=[x.reshape(-1,1) for x in [samp1, samp2, smean]]
     arr=np.concatenate(frames, axis=1)
     arr=arr[arr[:,2].argsort()]
-    print(samp1.name)
+    print(samp1.name, samp2.name)
     plt.plot(arr[:,0], alpha=0.4, markersize=3, marker='o', 
              color='b', linestyle='none', label=samp1.name)
     plt.plot(arr[:,1], alpha=0.4, markersize=3, marker='o', 
@@ -254,9 +359,10 @@ def hist_show(sample, df):
     plt.clf()
     # plt.close(fi)
 
-def heat_map(): #requires #import seaborn as sns#
+def heat_map(df): #requires #import seaborn as sns#
     plt.clf()
-    corr=df[df[lcs]>10].corr('pearson')
+    plt.figure(figsize=(15,15))
+    corr=df.corr('pearson')
     sns.heatmap(corr)
     plt.savefig('heat_map.png')
     pass
@@ -278,12 +384,12 @@ def scat_matrix(): #need lcs
     g=g.map(plt.scatter, alpha=0.5)
     plt.savefig('namefig.png')
     
-def cluster_map():
+def cluster_map(dfx):
     plt.clf()
     corr=dfx.corr()
     cmap=sns.diverging_palette(120, 5, as_cmap=True)
     sns.set(font_scale=1.6)
-    fig=sns.clustermap(corr, cmap=cmap, linewidths=.5)
+    fig=sns.clustermap(corr, cmap=cmap, linewidths=.5, figsize=(25,25), vmin=0)
     plt.setp(fig.ax_heatmap.yaxis.get_majorticklabels(), rotation=0)
     fig.savefig('clustermap.png')
 
