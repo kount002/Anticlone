@@ -2,6 +2,8 @@
 """
 Created on Tue Apr 19 09:42:03 2016
 @author: Evgueni
+Truncated version of clone_count.py
+requires preannotated files
 Takes bam file as input and counts all unique clones(read pairs) using unique coordinates
 
 As input the program will require -i
@@ -9,6 +11,8 @@ USAGE:
 clone-count.py -i input_bam_file [-n output_file_name_prefix] [-b mask_for_batch_processing] [-f bin size]
 Example python3.3 clone_count.py -i Processed_data/EK\*/tophat/accepted_hits.bam -f 150 -b yes
 Need to escape *
+
+If previously processed sam files containing annotation are present provide path to sam file to avoid running convertion to sam and reannotation
 Example nohup python clone_count.py -i recount/K*.sam -f 100 -b yes -n renames
 check is done for the length of path(4), processes as a batch
 Dictionary structure:
@@ -23,8 +27,8 @@ However the sripts runs fine if started from IPython3 environment via 'run clone
 
 """
 ########### Param #############
-rduce=0 #make 0 if want keep names of the reads for each fragment bin, 1 if want to convert them to counts
-
+rduce=1 #make 0 if want keep names of the reads for each fragment bin, 1 if want to convert them to counts
+maq=10 #removes reads with low mapping quality, mostly ambigious. Set to '0' to disable
 
 ###############################
 
@@ -36,6 +40,7 @@ import sqlite3
 import pickle
 import pandas as pd
 import numpy as np
+import re
 
 
 #import sqlite3
@@ -60,9 +65,9 @@ def janitor(): #cleanup intermediate files
     #os.remove() # hta.sam from converter?
     
 
-def collector(pathin, r=10): #process file and gets unique reads
+def collector(pathin, r=10): #process file and gets unique reads, 'r' specifies rounding window
     
-    def cust_round(val, r=10):
+    def cust_round(val, r=10): #rounds up the position of the clones to create sorting bins
         rval=int(r*(round(int(val)/r)))
         return(rval)
     
@@ -83,7 +88,7 @@ def collector(pathin, r=10): #process file and gets unique reads
             #pos1=round(int(lines[3]), r) #convert into int roundup to reduce bins and reduce resolution
             #pos2=round(int(lines[7]), r)  #old function using order 
             annt=[lines[-1].strip('XF:Z:')]
-            key=(chrn, pos1, pos2)
+            key=(chrn, pos1, pos2) #creates tuple for dictionary key
             #print(key,'masterkey')
             if len(mastdict[key])==0:   #data structure: {(pos1,pos2):[{set of names},{set of annotations}]}
                 mastdict[key].append(set())  #add sets names and annotations to list
@@ -99,10 +104,29 @@ def collector(pathin, r=10): #process file and gets unique reads
                 continue
             if len(lines[6])>1: # removes reads that al to diff chr (check if sets for names and annotations are present in the list
                 continue
+            if int(lines[4])<maq: # removes reads with mapping quality less then 0.1
+                continue
             name=[lines[0]]            
             chrn=lines[2]
-            pos1=cust_round(lines[3], r)
-            pos2=cust_round(lines[7], r)                        
+
+            #locate start and end of the clone and orient pos1<pos2. End is start of pos1 plus length of the clone
+            pos1=min(int(lines[3]), int(lines[7])) #accouts for orientation of the reads
+            pos2=pos1+abs(int(lines[8]))
+
+            #incorrect postion 2 math 
+            #pos2=int(lines[7])+int(lines[8])
+            #pos1=int(lines[3])
+            #pos1=min(pos1, pos2)
+            #pos2=max(pos1, pos2)
+            
+            pos1=cust_round(pos1, r)
+            pos2=cust_round(pos2, r)
+
+            ##old solution remove
+            ##pos1=cust_round(lines[3], r)
+            ##pos2=cust_round(lines[7], r)                        
+            ##
+
             #pos1=round(int(lines[3]), r) #convert into int roundup to reduce bins and reduce resolution
             #pos2=round(int(lines[7]), r) #old 10/100/1000 based rounding
             annt=[lines[-1].strip('XF:Z:')]
@@ -193,22 +217,30 @@ def dic_reduce(mast): #replaces set of read names with count
     return(mast)
     
 
-def dic_df(mast): #convert master dictionary to list of dataframes
+def dic_df(mast): #convert master dictionary, which is dictionary of dictionaries, to a list of dataframes for each sample
 
-    dfmast=pd.DataFrame(index=None, columns=['Annotation'])
+    dfmast=pd.DataFrame(index=None, columns=['Annotation']) #make an empty master df
     dfmast['Annotation'].astype(str)
-    for i in mast:
+    for i in mast: #for a sample in master dict
         dftm=pd.DataFrame.from_dict(mast[i], orient='index')
         dftm.columns=[i, 'Annotation']
-        dftm['Annotation']=dftm['Annotation'].astype(str).map(lambda x: x.strip("{'}"))
+        dftm['Annotation']=dftm['Annotation'].astype(str).map(lambda x: re.sub(r'__', '', x))
+        dftm['Annotation']=dftm['Annotation'].astype(str).map(lambda x: re.sub(r'[\{\}\"\' ]', '', x))      #x.strip("{'}\""))
         dfmast=dfmast.join(dftm, how='outer', lsuffix=i)
+        #print('mast:', dfmast.shape, 'dftm', dftm.shape)
         
     lc=['Annotation']+['Annotation'+i for i in mast]
-    dfmast[lc]=dfmast[lc].fillna(' none')
-    #print(dfmast[lc].head())
-    dfmast['Annotation']=dfmast[lc].apply(lambda x: tuple(x.unique()), axis=1)
-    dfmast['Annotation']=dfmast['Annotation'].apply(lambda x: tuple([c for c in x if c!='none']))
+    dfmast[lc]=dfmast[lc].fillna('none') #repaces NaN in all vertions of Annotation
+    dfmast['Annotation']=dfmast[lc].apply(lambda x: list(x.unique()), axis=1)
+    dfmast['Annotation']=dfmast['Annotation'].apply(lambda x: str([c for c in x if c!='none']))
     dfmast.drop(lc[1:], axis=1, inplace=True)
+    dfmast['Annotation']=dfmast['Annotation'].astype(str).map(lambda x: re.sub(r'[\[\]\'\" ]', '', x))   #x.strip('[]\'\"'))
+    dfmast['Annotation']=dfmast['Annotation'].astype(str).map(lambda x: set(x.split(',')))
+    dfmast['Annotation']=dfmast['Annotation'].astype(str).map(lambda x: re.sub(r'[\{\}\'\" ]', '', x))
+    #convert tuple index to stacked index
+    #print(dfmast.columns)
+    #print(dfmast.index)
+    dfmast.index=pd.MultiIndex.from_tuples(dfmast.index, names=['Chr', 'Start_Pos', 'End_Pos'])
     
     return(dfmast)
     
@@ -289,11 +321,13 @@ else:
         print('Cannot figure the path', sourcefl) 
     if rduce!=0:
         dic_reduce(mast)
+    
+    '''Save options for output'''
     #save_db(mast) #convert master dict to sqlite db
-    save_pickle(mast) #convert master dict to pickle dump
-    save_pickle(dic_df(mast))        
-    #dfmast=dic_df(mast)
-        
+    #save_pickle(mast) #convert master dict to pickle dump
+    #save_pickle(dic_df(mast))   #convert master dictionary to df and pickles it     
+    dfmast=dic_df(mast)
+    dfmast.to_csv('clone_count_output.csv')    
         
              
 print('Im done')        

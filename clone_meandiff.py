@@ -12,11 +12,19 @@ Sort items by max expression or max difference between
 Uses graphs that are sample specific, 
 """
 ################### Params ###############
+<<<<<<< HEAD
 inputs='master.pkl' #path
 output='diff_out_master_recount_gene_5vs8_u91_healthsig.csv' #path
 #fname='p_value_hist.png' # path to figure
 
 method='upper89' #normalalizaiton method (upper80, tc, RLE80, med, max)
+=======
+inputs='clone_count/clone_count_df.pkl' #path
+output='diff_out.csv' #path
+#fname='p_value_hist.png' # path to figure
+
+method='upper94' #normalalizaiton method (upper80, tc, RLE80, med, max)
+>>>>>>> kount002/master
 tresh=1 #normalization based on minimum absolute count (provide minimum count)
 meanfilter=1.3 #normalization based on mean expression (folds of the tresh) (removes genes wt mean expression less then value)
 
@@ -24,11 +32,10 @@ noannkeep=1 #'1' keeps all entries including ones with no annotation; '0' or els
 foldover=1 #fold over max(control)
 
 groups={
-    'TEST_interest':['K10120','K10220','K10320','K10420','K10820'],
-    'Healthy_compare':['K10520','K10920','K11020','K11120','K11220', 'KRut120', 'KRut220'],
-    'Second_compare':['K20120','K20320','K20420','K20520','K20620']
-     
-     }
+    '201_compare':['20118', '20120', '20122', '201R20'],
+    'H_interest':['AbMix18', 'AbMix20', 'AbMix22'],
+    'NOS_control':['NOS18', 'NOS20', 'NOS22'],
+        }
 
 #'K10520','K10920','K11020','K11120','K11220'],
 #['K20120','K20320','K20420','K20520','K20620'
@@ -89,10 +96,9 @@ for k, i in groups.items():
     nname='mean_'+k
     dfm[nname]=df[i].mean(axis=1)
     dfm[i]=df[i]
-
-#add 'Annotation' columns and move to the first position
+#adds 'Annotation' column and places it in front of all columns
 dfm['Annotation']=df['Annotation']
-cols=dfm.columns.tolist() #put Annotation in front of all columns
+cols=dfm.columns.tolist()
 cols=cols[-1:]+cols[:-1]
 dfm=dfm[cols]
 

@@ -38,26 +38,32 @@ echo 'Pre-qc has started'
 #run cutadapt
 
 for i in /home/kount002/Seq_data/Human/"$data"/*R1* ; do
+
 si=$(basename $i) #cuts the file name
-name=$(echo $si | sed -e 's/_R._[0-9]*\.fastq\.gz//')
-dir=$(echo $si | sed -e 's/_S[0-9]*_R._[0-9]*\.fastq\.gz//' -e 's/^E//' -e 's/-//g' -e 's/_//g') 
+name=$(echo $si | sed -e 's/_R[1,2]\.fastq\.gz//')
+dir=$(echo $si | sed -e 's/_R[1,2]\.fastq\.gz//') 
 echo "Adapter processing of ....." "$dir", "$si"
 mkdir -p "$PDIR"/Processed_data/"$dir"
 
-(
+(  
 #create input file variables
-file1=$(ls ~/Seq_data/Human/"$data"/"$name"*R1*)
-file2=$(ls ~/Seq_data/Human/"$data"/"$name"*R2*)
+file1=$(ls ~/Seq_data/Human/"$data"/"$name"_R1*)
+file2=$(ls ~/Seq_data/Human/"$data"/"$name"_R2*)
 
+echo inputs $data $name
+echo $file1 $file2
+
+  
 # R1 reads use universal primers for sequencing works with compressed data
 #for R1 look for complement of 3-end of insert + Index adapter: GTTGCGGCCGCTGGATTGATCGGAAGAGCACACGTCTGAACTCCAGTCAC  ( insert sequence starts with CCATGGCCGCCGAGAAC edd to universal adapter in reverse when cleaning for R2)
-~/.local/bin/cutadapt -a TGTTGCGGCCGCTGGATTGATCGGAAGAGCACACGTCTGAACTCCAGTCAC -q20 -m40 -e 0.1 \
+
+~/.local/bin/cutadapt -a TGTTGCGGCCGCTGGATTGATCGGAAGAGCACACGTCTGAACTCCAGTCAC --nextseq-trim=20 -m40 -e 0.1 \
 -o "$PDIR"/Processed_data/"$dir"/"$dir"_atmp1.fastq.gz -p "$PDIR"/Processed_data/"$dir"/"$dir"_atmp2.fastq.gz \
 $file1 $file2 \
 &> Processed_data/"$dir"/"$dir"_cutadapt.log
 
 #for R2 look for reverse complement of insert start and Universal primer (GTTCTCGGCGGCCATGG AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT)
-~/.local/bin/cutadapt -a TGTTCTCGGCGGCCATGGAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT -q20 -m40 -e 0.1 \
+~/.local/bin/cutadapt -a TGTTCTCGGCGGCCATGGAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT --nextseq-trim=20 -m40 -e 0.1 \
 -o "$PDIR"/Processed_data/"$dir"/"$dir"_R2_trimmed.fastq.gz -p "$PDIR"/Processed_data/"$dir"/"$dir"_R1_trimmed.fastq.gz \
 "$PDIR"/Processed_data/"$dir"/"$dir"_atmp2.fastq.gz "$PDIR"/Processed_data/"$dir"/"$dir"_atmp1.fastq.gz \
 &>> Processed_data/"$dir"/"$dir"_cutadapt.log

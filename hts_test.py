@@ -17,10 +17,8 @@ contgene=['COL4A2', 'NCOA6', 'MYCBP2', 'MAP1B', 'MAP1A', \
 'PPIA']
 
 file='hts_count_merged.txt'
-file='hts_count_merged_recount.txt'
-file='../ANA/Combine_nextseq/comb_hts.txt'
-file='../170930_MSseq/Raw_comb.csv'
-
+file='hts_comb_wt_mi_div_tr.txt'
+file='hts_hybrid.txt'
 
 ######################
 
@@ -81,15 +79,14 @@ lc=[x.strip('sample_') for x in lc]
 df.columns=lc
 df['Annotation']=df.index #mods to accomodate gene lists
 
-
-
-df=exg.norm_varr(df, 'contgeneRLE75', contgene, tresh=10, meanfilter=1.1) #comment if run anova to avoid double normalization
+df=exg.norm_varr(df, 'RLE90', tresh=1, meanfilter=1.0) #comment if run anova to avoid double normalization
 exg.norm_plot(df)
 #exg.expression_plot(df.iloc[:,19], df.iloc[:,12], 'second')
 #exg.MA_plot(df.iloc[:,18], df.iloc[:,16], 'first')
 
-#with open('master.pkl', 'wb') as f:
-#    pickle.dump(df, f)
+df.to_csv('hts_hybrid.csv')
+with open('mastera.pkl', 'wb') as f:
+    pickle.dump(df, f)
     
 #a=dfx.loc[(dfx>1.5).any(axis=1),:] #extract rows with values all>1.5
     
